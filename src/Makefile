@@ -5,10 +5,6 @@ OBJS = $(SRCS:.c=.o)
 EXECUTABLE = cfcr
 LDFLAGS = `pkg-config --libs gstreamer-1.0`
 CFLAGS = -g `pkg-config --cflags gstreamer-1.0` \
-	-DGLIB_VERSION_MIN_REQUIRED=GLIB_VERSION_2_42 \
-	-DGLIB_VERSION_MAX_ALLOWED=GLIB_VERSION_2_42 \
-	-DGDK_VERSION_MIN_REQUIRED=GDK_VERSION_3_14 \
-	-DGDK_VERSION_MAX_ALLOWED=GDK_VERSION_3_14 \
 	-Wall \
 	-Wextra \
 	-Wundef \
