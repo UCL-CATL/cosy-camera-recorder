@@ -1,4 +1,5 @@
 #include <stdlib.h>
+#include <locale.h>
 #include <gst/gst.h>
 
 static void
@@ -31,6 +32,8 @@ int
 main (int    argc,
       char **argv)
 {
+	setlocale (LC_ALL, "en_US.utf8");
+
 	gst_init (&argc, &argv);
 
 	list_devices ();
