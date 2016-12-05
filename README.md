@@ -1,8 +1,11 @@
 cosy-fmri-camera-recorder
 =========================
 
-Linux driver
-------------
+Record a video coming from a USB2.0 Video Grabber, connected to an
+FMRI-compatible camera.
+
+Linux kernel driver
+-------------------
 
 dmesg output:
 [ 4165.009790] usb 2-1.8: new high-speed USB device number 5 using ehci-pci
@@ -28,3 +31,12 @@ v3.11
 
 CentOS 7 uses Linux 3.10, so the kernel driver is not available there.
 A more recent kernel is needed, for example with Fedora.
+
+GStreamer
+---------
+
+With the Cheese webcam application, on Fedora 24, we see the camera image.
+Cheese uses the GStreamer library. GStreamer can be used for a lot of purposes,
+it is very flexible. So if the code works with GStreamer, chances are that it
+will work for a lot of different video capture devices (if high-level APIs are
+used), not just the one we want to use.
