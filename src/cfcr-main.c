@@ -8,7 +8,6 @@ struct _CfcrApp
 {
 	GMainLoop *main_loop;
 	GstElement *pipeline;
-	guint bus_watch_id;
 };
 
 static void
@@ -37,37 +36,29 @@ list_devices (void)
 	gst_object_unref (monitor);
 }
 
-static gboolean
-bus_watch_cb (GstBus     *bus,
-	      GstMessage *message,
-	      gpointer    user_data)
+static void
+bus_message_error_cb (GstBus     *bus,
+		      GstMessage *message,
+		      CfcrApp    *app)
 {
-	CfcrApp *app = user_data;
-	GstMessageType msg_type;
+	GError *error;
+	gchar *debug;
 
-	g_print ("Got %s message\n", GST_MESSAGE_TYPE_NAME (message));
+	gst_message_parse_error (message, &error, &debug);
+	g_print ("Error: %s\n", error->message);
+	g_error_free (error);
+	g_free (debug);
 
-	msg_type = GST_MESSAGE_TYPE (message);
+	g_main_loop_quit (app->main_loop);
+}
 
-	if (msg_type == GST_MESSAGE_ERROR)
-	{
-		GError *error;
-		gchar *debug;
-
-		gst_message_parse_error (message, &error, &debug);
-		g_print ("Error: %s\n", error->message);
-		g_error_free (error);
-		g_free (debug);
-
-		g_main_loop_quit (app->main_loop);
-	}
-	else if (msg_type == GST_MESSAGE_EOS)
-	{
-		/* end-of-stream */
-		g_main_loop_quit (app->main_loop);
-	}
-
-	return TRUE;
+/* End-of-stream */
+static void
+bus_message_eos_cb (GstBus     *bus,
+		    GstMessage *message,
+		    CfcrApp    *app)
+{
+	g_main_loop_quit (app->main_loop);
 }
 
 static void
@@ -84,8 +75,18 @@ create_video_capture_pipeline (CfcrApp *app)
 	app->pipeline = gst_pipeline_new ("video-capture-pipeline");
 
 	bus = gst_pipeline_get_bus (GST_PIPELINE (app->pipeline));
-	g_assert (app->bus_watch_id == 0);
-	app->bus_watch_id = gst_bus_add_watch (bus, bus_watch_cb, app);
+	gst_bus_add_signal_watch (bus);
+
+	g_signal_connect (bus,
+			  "message::error",
+			  G_CALLBACK (bus_message_error_cb),
+			  app);
+
+	g_signal_connect (bus,
+			  "message::eos",
+			  G_CALLBACK (bus_message_eos_cb),
+			  app);
+
 	gst_object_unref (bus);
 
 	v4l2src = gst_element_factory_make ("v4l2src", NULL);
@@ -131,7 +132,6 @@ main (int    argc,
 
 	gst_element_set_state (app.pipeline, GST_STATE_NULL);
 	gst_object_unref (app.pipeline);
-	g_source_remove (app.bus_watch_id);
 	g_main_loop_unref (app.main_loop);
 
 	return EXIT_SUCCESS;
