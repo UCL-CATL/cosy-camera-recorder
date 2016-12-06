@@ -60,6 +60,8 @@ create_video_capture_pipeline (void)
 	{
 		g_warning ("Failed to link GStreamer elements.");
 	}
+
+	gst_element_set_state (pipeline, GST_STATE_PLAYING);
 }
 
 int
