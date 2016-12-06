@@ -90,15 +90,39 @@ create_video_capture_pipeline (CfcrApp *app)
 	gst_object_unref (bus);
 
 	v4l2src = gst_element_factory_make ("v4l2src", NULL);
+	if (v4l2src == NULL)
+	{
+		g_error ("Failed to create v4l2src GStreamer element.");
+	}
+
 	g_object_set (v4l2src,
 		      "num-buffers", 50,
 		      NULL);
 
 	queue = gst_element_factory_make ("queue", NULL);
+	if (queue == NULL)
+	{
+		g_error ("Failed to create queue GStreamer element.");
+	}
+
 	mpeg4enc = gst_element_factory_make ("avenc_mpeg4", NULL);
+	if (mpeg4enc == NULL)
+	{
+		g_error ("Failed to create avenc_mpeg4 GStreamer element.");
+	}
+
 	mp4mux = gst_element_factory_make ("mp4mux", NULL);
+	if (mp4mux == NULL)
+	{
+		g_error ("Failed to create mp4mux GStreamer element.");
+	}
 
 	filesink = gst_element_factory_make ("filesink", NULL);
+	if (filesink == NULL)
+	{
+		g_error ("Failed to create filesink GStreamer element.");
+	}
+
 	g_object_set (filesink,
 		      "location", "video.mp4",
 		      NULL);
