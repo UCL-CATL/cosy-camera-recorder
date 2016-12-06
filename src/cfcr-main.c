@@ -28,6 +28,40 @@ list_devices (void)
 	gst_object_unref (monitor);
 }
 
+static void
+create_video_capture_pipeline (void)
+{
+	GstElement *pipeline;
+	GstElement *v4l2src;
+	GstElement *queue;
+	GstElement *mpeg4enc;
+	GstElement *mp4mux;
+	GstElement *filesink;
+
+	pipeline = gst_pipeline_new ("video-capture-pipeline");
+
+	v4l2src = gst_element_factory_make ("v4l2src", NULL);
+	g_object_set (v4l2src,
+		      "num-buffers", 50,
+		      NULL);
+
+	queue = gst_element_factory_make ("queue", NULL);
+	mpeg4enc = gst_element_factory_make ("avenc_mpeg4", NULL);
+	mp4mux = gst_element_factory_make ("mp4mux", NULL);
+
+	filesink = gst_element_factory_make ("filesink", NULL);
+	g_object_set (filesink,
+		      "location", "video.mp4",
+		      NULL);
+
+	gst_bin_add_many (GST_BIN (pipeline), v4l2src, queue, mpeg4enc, mp4mux, filesink, NULL);
+
+	if (!gst_element_link_many (v4l2src, queue, mpeg4enc, mp4mux, filesink, NULL))
+	{
+		g_warning ("Failed to link GStreamer elements.");
+	}
+}
+
 int
 main (int    argc,
       char **argv)
@@ -37,6 +71,7 @@ main (int    argc,
 	gst_init (&argc, &argv);
 
 	list_devices ();
+	create_video_capture_pipeline ();
 
 	return EXIT_SUCCESS;
 }
