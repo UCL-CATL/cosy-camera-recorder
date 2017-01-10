@@ -1,6 +1,10 @@
 #include <stdlib.h>
 #include <locale.h>
 #include <gst/gst.h>
+#include <zmq.h>
+#include <string.h>
+
+#define REPLIER_ENDPOINT "tcp://*:6001"
 
 typedef struct _CfcrApp CfcrApp;
 
@@ -8,6 +12,14 @@ struct _CfcrApp
 {
 	GMainLoop *main_loop;
 	GstElement *pipeline;
+
+	/* ZeroMQ */
+	void *context;
+	void *replier;
+
+	GTimer *timer;
+
+	guint recording : 1;
 };
 
 static void
@@ -58,6 +70,7 @@ bus_message_eos_cb (GstBus     *bus,
 		    GstMessage *message,
 		    CfcrApp    *app)
 {
+	g_print ("End of stream.\n");
 	g_main_loop_quit (app->main_loop);
 }
 
@@ -95,10 +108,6 @@ create_video_capture_pipeline (CfcrApp *app)
 		g_error ("Failed to create v4l2src GStreamer element.");
 	}
 
-	g_object_set (v4l2src,
-		      "num-buffers", 50,
-		      NULL);
-
 	queue = gst_element_factory_make ("queue", NULL);
 	if (queue == NULL)
 	{
@@ -134,7 +143,200 @@ create_video_capture_pipeline (CfcrApp *app)
 		g_warning ("Failed to link GStreamer elements.");
 	}
 
+	gst_element_set_state (app->pipeline, GST_STATE_PAUSED);
+}
+
+/* Receives the next zmq message part as a string.
+ * Free the return value with g_free() when no longer needed.
+ */
+static char *
+receive_next_message (void *socket)
+{
+	zmq_msg_t msg;
+	int n_bytes;
+	char *str = NULL;
+	int ok;
+
+	ok = zmq_msg_init (&msg);
+	g_return_val_if_fail (ok == 0, NULL);
+
+	n_bytes = zmq_msg_recv (&msg, socket, 0);
+	if (n_bytes > 0)
+	{
+		void *raw_data;
+
+		raw_data = zmq_msg_data (&msg);
+		str = g_strndup (raw_data, n_bytes);
+	}
+
+	ok = zmq_msg_close (&msg);
+	if (ok != 0)
+	{
+		g_free (str);
+		g_return_val_if_reached (NULL);
+	}
+
+	return str;
+}
+
+static char *
+start_recording (CfcrApp *app)
+{
+	char *reply;
+
+	g_print ("Start recording\n");
+	app->recording = TRUE;
+
+	if (app->timer == NULL)
+	{
+		app->timer = g_timer_new ();
+	}
+	else
+	{
+		g_timer_start (app->timer);
+	}
+
 	gst_element_set_state (app->pipeline, GST_STATE_PLAYING);
+
+	reply = g_strdup ("ack");
+	return reply;
+}
+
+static char *
+stop_recording (CfcrApp *app)
+{
+	char *reply;
+
+	g_print ("Stop recording\n");
+	app->recording = FALSE;
+
+	gst_element_send_event (app->pipeline, gst_event_new_eos ());
+
+	if (app->timer != NULL)
+	{
+		g_timer_stop (app->timer);
+		reply = g_strdup_printf ("%lf", g_timer_elapsed (app->timer, NULL));
+	}
+	else
+	{
+		reply = g_strdup ("no timer");
+	}
+
+	return reply;
+}
+
+static void
+read_request (CfcrApp *app)
+{
+	char *request;
+	char *reply = NULL;
+
+	request = receive_next_message (app->replier);
+	if (request == NULL)
+	{
+		return;
+	}
+
+	g_print ("Request from cosy-pupil-client: %s\n", request);
+
+	if (g_str_equal (request, "start"))
+	{
+		reply = start_recording (app);
+	}
+	else if (g_str_equal (request, "stop"))
+	{
+		reply = stop_recording (app);
+	}
+	else
+	{
+		g_warning ("Unknown request: %s", request);
+		reply = g_strdup ("unknown request");
+	}
+
+	g_print ("Send reply to cosy-pupil-client...\n");
+	zmq_send (app->replier,
+		  reply,
+		  strlen (reply),
+		  0);
+	g_print ("done.\n");
+
+	g_free (request);
+	g_free (reply);
+}
+
+static gboolean
+timeout_cb (gpointer user_data)
+{
+	CfcrApp *app = user_data;
+
+	read_request (app);
+
+	return G_SOURCE_CONTINUE;
+}
+
+static void
+app_init (CfcrApp *app)
+{
+	int timeout_ms;
+	int ok;
+
+	app->main_loop = g_main_loop_new (NULL, FALSE);
+
+	app->context = zmq_ctx_new ();
+
+	app->replier = zmq_socket (app->context, ZMQ_REP);
+	ok = zmq_bind (app->replier, REPLIER_ENDPOINT);
+	if (ok != 0)
+	{
+		g_error ("Error when creating zmq socket at \"" REPLIER_ENDPOINT "\": %s.\n"
+			 "Is another cosy-fmri-camera-recorder process running?",
+			 strerror (errno));
+	}
+
+	/* Non-blocking */
+	timeout_ms = 0;
+	ok = zmq_setsockopt (app->replier,
+			     ZMQ_RCVTIMEO,
+			     &timeout_ms,
+			     sizeof (int));
+	if (ok != 0)
+	{
+		g_error ("Error when setting zmq socket option for the replier: %s",
+			 strerror (errno));
+	}
+
+	app->timer = NULL;
+	app->recording = FALSE;
+
+	create_video_capture_pipeline (app);
+
+	/* ZeroMQ polling every 5ms */
+	g_timeout_add (5, timeout_cb, app);
+}
+
+static void
+app_finalize (CfcrApp *app)
+{
+	if (app->pipeline != NULL)
+	{
+		gst_element_set_state (app->pipeline, GST_STATE_NULL);
+		gst_object_unref (app->pipeline);
+		app->pipeline = NULL;
+	}
+
+	zmq_close (app->replier);
+	app->replier = NULL;
+
+	zmq_ctx_destroy (app->context);
+	app->context = NULL;
+
+	if (app->timer != NULL)
+	{
+		g_timer_destroy (app->timer);
+		app->timer = NULL;
+	}
+
+	g_main_loop_unref (app->main_loop);
 }
 
 int
@@ -147,16 +349,11 @@ main (int    argc,
 
 	gst_init (&argc, &argv);
 
-	app.main_loop = g_main_loop_new (NULL, FALSE);
-
 	list_devices ();
-	create_video_capture_pipeline (&app);
 
+	app_init (&app);
 	g_main_loop_run (app.main_loop);
-
-	gst_element_set_state (app.pipeline, GST_STATE_NULL);
-	gst_object_unref (app.pipeline);
-	g_main_loop_unref (app.main_loop);
+	app_finalize (&app);
 
 	return EXIT_SUCCESS;
 }
