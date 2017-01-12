@@ -1,8 +1,8 @@
 CC = gcc
-SRCS = ccr-main.c
+SRCS = cosy-camera-recorder.c
 
 OBJS = $(SRCS:.c=.o)
-EXECUTABLE = ccr
+EXECUTABLE = cosy-camera-recorder
 LDFLAGS = `pkg-config --libs gstreamer-1.0 libczmq`
 CFLAGS = -g `pkg-config --cflags gstreamer-1.0 libczmq` \
 	-Wall \
