@@ -1,3 +1,24 @@
+/*
+ * This file is part of cosy-camera-recorder.
+ *
+ * Copyright (C) 2017 - Université Catholique de Louvain
+ *
+ * cosy-camera-recorder is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by the Free
+ * Software Foundation, either version 3 of the License, or (at your option) any
+ * later version.
+ *
+ * cosy-camera-recorder is distributed in the hope that it will be useful, but
+ * WITHOUT ANY WARRANTY; without even the implied warranty of MERCHANTABILITY or
+ * FITNESS FOR A PARTICULAR PURPOSE.  See the GNU General Public License for
+ * more details.
+ *
+ * You should have received a copy of the GNU General Public License along with
+ * cosy-camera-recorder.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ * Author: Sébastien Wilmet
+ */
+
 #include <stdlib.h>
 #include <locale.h>
 #include <gst/gst.h>
