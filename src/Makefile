@@ -1,8 +1,8 @@
 CC = gcc
-SRCS = cfcr-main.c
+SRCS = ccr-main.c
 
 OBJS = $(SRCS:.c=.o)
-EXECUTABLE = cfcr
+EXECUTABLE = ccr
 LDFLAGS = `pkg-config --libs gstreamer-1.0 libczmq`
 CFLAGS = -g `pkg-config --cflags gstreamer-1.0 libczmq` \
 	-Wall \
