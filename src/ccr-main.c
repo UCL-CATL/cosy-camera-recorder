@@ -6,9 +6,9 @@
 
 #define REPLIER_ENDPOINT "tcp://*:6001"
 
-typedef struct _CfcrApp CfcrApp;
+typedef struct _CcrApp CcrApp;
 
-struct _CfcrApp
+struct _CcrApp
 {
 	GMainLoop *main_loop;
 	GstElement *pipeline;
@@ -51,7 +51,7 @@ list_devices (void)
 static void
 bus_message_error_cb (GstBus     *bus,
 		      GstMessage *message,
-		      CfcrApp    *app)
+		      CcrApp     *app)
 {
 	GError *error;
 	gchar *debug;
@@ -68,14 +68,14 @@ bus_message_error_cb (GstBus     *bus,
 static void
 bus_message_eos_cb (GstBus     *bus,
 		    GstMessage *message,
-		    CfcrApp    *app)
+		    CcrApp     *app)
 {
 	g_print ("End of stream.\n");
 	g_main_loop_quit (app->main_loop);
 }
 
 static void
-create_video_capture_pipeline (CfcrApp *app)
+create_video_capture_pipeline (CcrApp *app)
 {
 	GstBus *bus;
 	GstElement *v4l2src;
@@ -180,7 +180,7 @@ receive_next_message (void *socket)
 }
 
 static char *
-start_recording (CfcrApp *app)
+start_recording (CcrApp *app)
 {
 	char *reply;
 
@@ -203,7 +203,7 @@ start_recording (CfcrApp *app)
 }
 
 static char *
-stop_recording (CfcrApp *app)
+stop_recording (CcrApp *app)
 {
 	char *reply;
 
@@ -226,7 +226,7 @@ stop_recording (CfcrApp *app)
 }
 
 static void
-read_request (CfcrApp *app)
+read_request (CcrApp *app)
 {
 	char *request;
 	char *reply = NULL;
@@ -267,7 +267,7 @@ read_request (CfcrApp *app)
 static gboolean
 timeout_cb (gpointer user_data)
 {
-	CfcrApp *app = user_data;
+	CcrApp *app = user_data;
 
 	read_request (app);
 
@@ -275,7 +275,7 @@ timeout_cb (gpointer user_data)
 }
 
 static void
-app_init (CfcrApp *app)
+app_init (CcrApp *app)
 {
 	int timeout_ms;
 	int ok;
@@ -315,7 +315,7 @@ app_init (CfcrApp *app)
 }
 
 static void
-app_finalize (CfcrApp *app)
+app_finalize (CcrApp *app)
 {
 	if (app->pipeline != NULL)
 	{
@@ -343,7 +343,7 @@ int
 main (int    argc,
       char **argv)
 {
-	CfcrApp app = { 0 };
+	CcrApp app = { 0 };
 
 	setlocale (LC_ALL, "en_US.utf8");
 
