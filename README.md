@@ -1,11 +1,33 @@
-cosy-fmri-camera-recorder
-=========================
+cosy-camera-recorder
+====================
 
-Record a video coming from a USB2.0 Video Grabber, connected to an
-FMRI-compatible camera.
+Recording a video coming from a camera or webcam, based on the GStreamer
+library. The recording is started and stopped with ZeroMQ requests.
 
-Linux kernel driver
--------------------
+Use-case
+--------
+
+Ideally we wanted to use the Pupil Capture application, but it doesn't support
+the camera that we want to use. It's an MR-compatible camera. To connect it to
+the PC, a video grabber must be used. We have tried two different video
+grabbers:
+
+- Fushicai USBTV007 Audio-Video Grabber (usbtv Linux driver)
+- USB2.0 PC CAMERA (UVC device)
+
+Pupil Capture currently supports only UVC devices, but the second video grabber
+doesn't work well in Pupil Capture, there are lots of errors about corrupt JPEG
+data.
+
+GStreamer supports well all camera devices that we have tested: the above two
+video grabbers, and the default webcams that come with the Pupil headset.
+
+Ideally a new video capture backend based on GStreamer should be developed for
+Pupil Capture. The program in this repository is a much simpler solution, for
+the cases where the eye tracking data don't need to be available in real-time.
+
+Usbtv video grabber - Linux kernel driver
+-----------------------------------------
 
 dmesg output:
 [ 4165.009790] usb 2-1.8: new high-speed USB device number 5 using ehci-pci
@@ -31,12 +53,3 @@ v3.11
 
 CentOS 7 uses Linux 3.10, so the kernel driver is not available there.
 A more recent kernel is needed, for example with Fedora.
-
-GStreamer
----------
-
-With the Cheese webcam application, on Fedora 24, we see the camera image.
-Cheese uses the GStreamer library. GStreamer can be used for a lot of purposes,
-it is very flexible. So if the code works with GStreamer, chances are that it
-will work for a lot of different video capture devices (if high-level APIs are
-used), not just the one we want to use.
