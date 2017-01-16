@@ -1,19 +1,13 @@
-FROM fedora:24
+# https://github.com/UCL-CATL/cosy-docker-layer
+FROM ucl-cosy/cosy-docker-layer
+
 MAINTAINER Sébastien Wilmet
 
-RUN dnf -y upgrade && \
-	dnf -y group install "C Development Tools and Libraries" && \
-	dnf clean all
-
-RUN dnf -y install https://raw.githubusercontent.com/UnitedRPMs/unitedrpms/master/RPM/unitedrpms-24-2.noarch.rpm && \
-	rpm --import https://raw.githubusercontent.com/UnitedRPMs/unitedrpms.github.io/master/URPMS-GPG-PUBLICKEY-Fedora-24 && \
-	dnf -y upgrade && \
-	dnf -y install gstreamer1-{ffmpeg,libav,plugins-{good,ugly,bad{,-free,-nonfree}}} --setopt=strict=0 && \
+RUN dnf -y install gstreamer1-{ffmpeg,libav,plugins-{good,ugly,bad{,-free,-nonfree}}} --setopt=strict=0 && \
 	dnf -y install \
 		zeromq-devel \
 		czmq-devel \
 		glib2-devel \
-		git \
 		gstreamer1-devel \
 		gstreamer1-plugins-base-devel \
 		gstreamer1-plugins-bad-free-devel && \
