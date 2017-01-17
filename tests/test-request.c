@@ -28,7 +28,7 @@ main (void)
 	printf ("Reply received: %s\n", reply);
 	free (reply);
 
-	sleep (10);
+	sleep (3);
 
 	request = "stop";
 	printf ("Send request: %s ...\n", request);
