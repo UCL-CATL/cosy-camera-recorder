@@ -103,7 +103,7 @@ get_video_filename (void)
 
 	current_time = g_date_time_new_now_local ();
 
-	filename = g_strdup_printf ("%d_%.2d_%.2d_%.2d:%.2d.mp4",
+	filename = g_strdup_printf ("cosy-camera-recorder-videos/%d_%.2d_%.2d_%.2d:%.2d.mp4",
 				    g_date_time_get_year (current_time),
 				    g_date_time_get_month (current_time),
 				    g_date_time_get_day_of_month (current_time),
