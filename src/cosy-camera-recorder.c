@@ -43,6 +43,9 @@ struct _CcrApp
 	guint recording : 1;
 };
 
+/* Prototypes */
+static void create_pipeline (CcrApp *app);
+
 static void
 list_devices (void)
 {
@@ -69,6 +72,36 @@ list_devices (void)
 	gst_object_unref (monitor);
 }
 
+static gchar *
+get_video_filename (void)
+{
+	GDateTime *current_time;
+	gchar *filename;
+
+	current_time = g_date_time_new_now_local ();
+
+	filename = g_strdup_printf ("cosy-camera-recorder-videos/%d_%.2d_%.2d_%.2d:%.2d.mp4",
+				    g_date_time_get_year (current_time),
+				    g_date_time_get_month (current_time),
+				    g_date_time_get_day_of_month (current_time),
+				    g_date_time_get_hour (current_time),
+				    g_date_time_get_minute (current_time));
+
+	g_date_time_unref (current_time);
+	return filename;
+}
+
+static void
+destroy_pipeline (CcrApp *app)
+{
+	if (app->pipeline != NULL)
+	{
+		gst_element_set_state (app->pipeline, GST_STATE_NULL);
+		gst_object_unref (app->pipeline);
+		app->pipeline = NULL;
+	}
+}
+
 static void
 bus_message_error_cb (GstBus     *bus,
 		      GstMessage *message,
@@ -91,31 +124,14 @@ bus_message_eos_cb (GstBus     *bus,
 		    GstMessage *message,
 		    CcrApp     *app)
 {
-	g_print ("End of stream.\n");
-	g_main_loop_quit (app->main_loop);
-}
+	g_print ("End of stream.\n\n");
 
-static gchar *
-get_video_filename (void)
-{
-	GDateTime *current_time;
-	gchar *filename;
-
-	current_time = g_date_time_new_now_local ();
-
-	filename = g_strdup_printf ("cosy-camera-recorder-videos/%d_%.2d_%.2d_%.2d:%.2d.mp4",
-				    g_date_time_get_year (current_time),
-				    g_date_time_get_month (current_time),
-				    g_date_time_get_day_of_month (current_time),
-				    g_date_time_get_hour (current_time),
-				    g_date_time_get_minute (current_time));
-
-	g_date_time_unref (current_time);
-	return filename;
+	destroy_pipeline (app);
+	create_pipeline (app);
 }
 
 static void
-create_video_capture_pipeline (CcrApp *app)
+create_pipeline (CcrApp *app)
 {
 	GstBus *bus;
 	GstElement *v4l2src;
@@ -123,6 +139,7 @@ create_video_capture_pipeline (CcrApp *app)
 	GstElement *mpeg4enc;
 	GstElement *mp4mux;
 	GstElement *filesink;
+	gchar *filename;
 
 	g_assert (app->pipeline == NULL);
 	app->pipeline = gst_pipeline_new ("video-capture-pipeline");
@@ -172,17 +189,10 @@ create_video_capture_pipeline (CcrApp *app)
 		g_error ("Failed to create filesink GStreamer element.");
 	}
 
-	{
-		gchar *filename;
-
-		filename = get_video_filename ();
-
-		g_object_set (filesink,
-			      "location", filename,
-			      NULL);
-
-		g_free (filename);
-	}
+	filename = get_video_filename ();
+	g_object_set (filesink,
+		      "location", filename,
+		      NULL);
 
 	gst_bin_add_many (GST_BIN (app->pipeline), v4l2src, queue, mpeg4enc, mp4mux, filesink, NULL);
 
@@ -192,6 +202,11 @@ create_video_capture_pipeline (CcrApp *app)
 	}
 
 	gst_element_set_state (app->pipeline, GST_STATE_PAUSED);
+
+	g_print ("Listening to ZeroMQ requests.\n");
+	g_print ("Will save the video to: %s\n", filename);
+
+	g_free (filename);
 }
 
 /* Receives the next zmq message part as a string.
@@ -356,7 +371,7 @@ app_init (CcrApp *app)
 	app->timer = NULL;
 	app->recording = FALSE;
 
-	create_video_capture_pipeline (app);
+	create_pipeline (app);
 
 	/* ZeroMQ polling every 5ms */
 	g_timeout_add (5, timeout_cb, app);
@@ -365,12 +380,7 @@ app_init (CcrApp *app)
 static void
 app_finalize (CcrApp *app)
 {
-	if (app->pipeline != NULL)
-	{
-		gst_element_set_state (app->pipeline, GST_STATE_NULL);
-		gst_object_unref (app->pipeline);
-		app->pipeline = NULL;
-	}
+	destroy_pipeline (app);
 
 	zmq_close (app->replier);
 	app->replier = NULL;
