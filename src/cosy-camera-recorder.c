@@ -68,6 +68,8 @@ list_devices (void)
 		g_free (display_name);
 	}
 
+	g_print ("\n");
+
 	g_list_free_full (devices, gst_object_unref);
 	gst_object_unref (monitor);
 }
