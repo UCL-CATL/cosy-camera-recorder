@@ -10,4 +10,5 @@ docker run -it --rm \
 	--privileged \
 	--net=host \
 	--volume $recordings_dir:/root/cosy-camera-recorder/src/cosy-camera-recorder-videos \
+	--volume /etc/localtime:/etc/localtime:ro \
 	ucl-cosy/cosy-camera-recorder
