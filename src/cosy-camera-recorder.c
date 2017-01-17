@@ -95,6 +95,25 @@ bus_message_eos_cb (GstBus     *bus,
 	g_main_loop_quit (app->main_loop);
 }
 
+static gchar *
+get_video_filename (void)
+{
+	GDateTime *current_time;
+	gchar *filename;
+
+	current_time = g_date_time_new_now_local ();
+
+	filename = g_strdup_printf ("%d_%.2d_%.2d_%.2d:%.2d.mp4",
+				    g_date_time_get_year (current_time),
+				    g_date_time_get_month (current_time),
+				    g_date_time_get_day_of_month (current_time),
+				    g_date_time_get_hour (current_time),
+				    g_date_time_get_minute (current_time));
+
+	g_date_time_unref (current_time);
+	return filename;
+}
+
 static void
 create_video_capture_pipeline (CcrApp *app)
 {
@@ -153,9 +172,17 @@ create_video_capture_pipeline (CcrApp *app)
 		g_error ("Failed to create filesink GStreamer element.");
 	}
 
-	g_object_set (filesink,
-		      "location", "video.mp4",
-		      NULL);
+	{
+		gchar *filename;
+
+		filename = get_video_filename ();
+
+		g_object_set (filesink,
+			      "location", filename,
+			      NULL);
+
+		g_free (filename);
+	}
 
 	gst_bin_add_many (GST_BIN (app->pipeline), v4l2src, queue, mpeg4enc, mp4mux, filesink, NULL);
 
