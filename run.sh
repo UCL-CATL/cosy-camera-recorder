@@ -1,3 +1,13 @@
 #!/usr/bin/env bash
 
-docker run -it --rm --privileged --net=host ucl-cosy/cosy-camera-recorder
+if [ "$#" -lt "1" ]; then
+	recordings_dir=~/pupil/cosy-camera-recorder-videos
+else
+	recordings_dir=$1
+fi
+
+docker run -it --rm \
+	--privileged \
+	--net=host \
+	--volume $recordings_dir:/root/cosy-camera-recorder/src/cosy-camera-recorder-videos \
+	ucl-cosy/cosy-camera-recorder
