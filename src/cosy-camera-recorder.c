@@ -31,6 +31,8 @@ typedef struct _CcrApp CcrApp;
 
 struct _CcrApp
 {
+	GtkWindow *window;
+
 	void *zeromq_context;
 	void *zeromq_replier;
 
@@ -194,6 +196,10 @@ app_init (CcrApp *app)
 {
 	int timeout_ms;
 	int ok;
+
+	app->window = GTK_WINDOW (gtk_window_new (GTK_WINDOW_TOPLEVEL));
+	g_signal_connect (app->window, "destroy", gtk_main_quit, NULL);
+	gtk_widget_show_all (GTK_WIDGET (app->window));
 
 	app->zeromq_context = zmq_ctx_new ();
 
