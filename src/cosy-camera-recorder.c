@@ -19,11 +19,11 @@
  * Author: Sébastien Wilmet
  */
 
-#include <stdlib.h>
-#include <locale.h>
-#include <glib.h>
+#include <gtk/gtk.h>
 #include <zmq.h>
+#include <stdlib.h>
 #include <string.h>
+#include <locale.h>
 
 #define REPLIER_ENDPOINT "tcp://*:6001"
 
@@ -31,8 +31,6 @@ typedef struct _CcrApp CcrApp;
 
 struct _CcrApp
 {
-	GMainLoop *main_loop;
-
 	/* ZeroMQ */
 	void *context;
 	void *replier;
@@ -198,8 +196,6 @@ app_init (CcrApp *app)
 	int timeout_ms;
 	int ok;
 
-	app->main_loop = g_main_loop_new (NULL, FALSE);
-
 	app->context = zmq_ctx_new ();
 
 	app->replier = zmq_socket (app->context, ZMQ_REP);
@@ -244,8 +240,6 @@ app_finalize (CcrApp *app)
 		g_timer_destroy (app->timer);
 		app->timer = NULL;
 	}
-
-	g_main_loop_unref (app->main_loop);
 }
 
 int
@@ -256,8 +250,10 @@ main (int    argc,
 
 	setlocale (LC_ALL, "en_US.utf8");
 
+	gtk_init (&argc, &argv);
+
 	app_init (&app);
-	g_main_loop_run (app.main_loop);
+	gtk_main ();
 	app_finalize (&app);
 
 	return EXIT_SUCCESS;
