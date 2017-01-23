@@ -21,7 +21,7 @@
 
 #include <stdlib.h>
 #include <locale.h>
-#include <gst/gst.h>
+#include <glib.h>
 #include <zmq.h>
 #include <string.h>
 
@@ -32,7 +32,6 @@ typedef struct _CcrApp CcrApp;
 struct _CcrApp
 {
 	GMainLoop *main_loop;
-	GstElement *pipeline;
 
 	/* ZeroMQ */
 	void *context;
@@ -43,37 +42,7 @@ struct _CcrApp
 	guint recording : 1;
 };
 
-/* Prototypes */
-static void create_pipeline (CcrApp *app);
-
-static void
-list_devices (void)
-{
-	GstDeviceMonitor *monitor;
-	GList *devices;
-	GList *l;
-
-	monitor = gst_device_monitor_new ();
-	gst_device_monitor_add_filter (monitor, NULL, NULL);
-
-	devices = gst_device_monitor_get_devices (monitor);
-
-	for (l = devices; l != NULL; l = l->next)
-	{
-		GstDevice *device = l->data;
-		gchar *display_name;
-
-		display_name = gst_device_get_display_name (device);
-		g_print ("Device: %s\n", display_name);
-		g_free (display_name);
-	}
-
-	g_print ("\n");
-
-	g_list_free_full (devices, gst_object_unref);
-	gst_object_unref (monitor);
-}
-
+#if 0
 static gchar *
 get_video_filename (void)
 {
@@ -93,124 +62,7 @@ get_video_filename (void)
 	g_date_time_unref (current_time);
 	return filename;
 }
-
-static void
-destroy_pipeline (CcrApp *app)
-{
-	if (app->pipeline != NULL)
-	{
-		gst_element_set_state (app->pipeline, GST_STATE_NULL);
-		gst_object_unref (app->pipeline);
-		app->pipeline = NULL;
-	}
-}
-
-static void
-bus_message_error_cb (GstBus     *bus,
-		      GstMessage *message,
-		      CcrApp     *app)
-{
-	GError *error;
-	gchar *debug;
-
-	gst_message_parse_error (message, &error, &debug);
-	g_print ("Error: %s\n", error->message);
-	g_error_free (error);
-	g_free (debug);
-
-	g_main_loop_quit (app->main_loop);
-}
-
-/* End-of-stream */
-static void
-bus_message_eos_cb (GstBus     *bus,
-		    GstMessage *message,
-		    CcrApp     *app)
-{
-	g_print ("End of stream.\n\n");
-
-	destroy_pipeline (app);
-	create_pipeline (app);
-}
-
-static void
-create_pipeline (CcrApp *app)
-{
-	GstBus *bus;
-	GstElement *v4l2src;
-	GstElement *queue;
-	GstElement *mpeg4enc;
-	GstElement *mp4mux;
-	GstElement *filesink;
-	gchar *filename;
-
-	g_assert (app->pipeline == NULL);
-	app->pipeline = gst_pipeline_new ("video-capture-pipeline");
-
-	bus = gst_pipeline_get_bus (GST_PIPELINE (app->pipeline));
-	gst_bus_add_signal_watch (bus);
-
-	g_signal_connect (bus,
-			  "message::error",
-			  G_CALLBACK (bus_message_error_cb),
-			  app);
-
-	g_signal_connect (bus,
-			  "message::eos",
-			  G_CALLBACK (bus_message_eos_cb),
-			  app);
-
-	gst_object_unref (bus);
-
-	v4l2src = gst_element_factory_make ("v4l2src", NULL);
-	if (v4l2src == NULL)
-	{
-		g_error ("Failed to create v4l2src GStreamer element.");
-	}
-
-	queue = gst_element_factory_make ("queue", NULL);
-	if (queue == NULL)
-	{
-		g_error ("Failed to create queue GStreamer element.");
-	}
-
-	mpeg4enc = gst_element_factory_make ("avenc_mpeg4", NULL);
-	if (mpeg4enc == NULL)
-	{
-		g_error ("Failed to create avenc_mpeg4 GStreamer element.");
-	}
-
-	mp4mux = gst_element_factory_make ("mp4mux", NULL);
-	if (mp4mux == NULL)
-	{
-		g_error ("Failed to create mp4mux GStreamer element.");
-	}
-
-	filesink = gst_element_factory_make ("filesink", NULL);
-	if (filesink == NULL)
-	{
-		g_error ("Failed to create filesink GStreamer element.");
-	}
-
-	filename = get_video_filename ();
-	g_object_set (filesink,
-		      "location", filename,
-		      NULL);
-
-	gst_bin_add_many (GST_BIN (app->pipeline), v4l2src, queue, mpeg4enc, mp4mux, filesink, NULL);
-
-	if (!gst_element_link_many (v4l2src, queue, mpeg4enc, mp4mux, filesink, NULL))
-	{
-		g_warning ("Failed to link GStreamer elements.");
-	}
-
-	gst_element_set_state (app->pipeline, GST_STATE_PAUSED);
-
-	g_print ("Listening to ZeroMQ requests.\n");
-	g_print ("Will save the video to: %s\n", filename);
-
-	g_free (filename);
-}
+#endif
 
 /* Receives the next zmq message part as a string.
  * Free the return value with g_free() when no longer needed.
@@ -262,7 +114,7 @@ start_recording (CcrApp *app)
 		g_timer_start (app->timer);
 	}
 
-	gst_element_set_state (app->pipeline, GST_STATE_PLAYING);
+	/* TODO start recording */
 
 	reply = g_strdup ("ack");
 	return reply;
@@ -276,7 +128,7 @@ stop_recording (CcrApp *app)
 	g_print ("Stop recording\n");
 	app->recording = FALSE;
 
-	gst_element_send_event (app->pipeline, gst_event_new_eos ());
+	/* TODO stop recording */
 
 	if (app->timer != NULL)
 	{
@@ -374,8 +226,6 @@ app_init (CcrApp *app)
 	app->timer = NULL;
 	app->recording = FALSE;
 
-	create_pipeline (app);
-
 	/* ZeroMQ polling every 5ms */
 	g_timeout_add (5, timeout_cb, app);
 }
@@ -383,8 +233,6 @@ app_init (CcrApp *app)
 static void
 app_finalize (CcrApp *app)
 {
-	destroy_pipeline (app);
-
 	zmq_close (app->replier);
 	app->replier = NULL;
 
@@ -407,10 +255,6 @@ main (int    argc,
 	CcrApp app = { 0 };
 
 	setlocale (LC_ALL, "en_US.utf8");
-
-	gst_init (&argc, &argv);
-
-	list_devices ();
 
 	app_init (&app);
 	g_main_loop_run (app.main_loop);
