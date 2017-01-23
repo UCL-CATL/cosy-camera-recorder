@@ -20,6 +20,8 @@
  */
 
 #include <gtk/gtk.h>
+#include <cheese/cheese-gtk.h>
+#include <cheese/cheese-widget.h>
 #include <zmq.h>
 #include <stdlib.h>
 #include <string.h>
@@ -198,7 +200,12 @@ app_init (CcrApp *app)
 	int ok;
 
 	app->window = GTK_WINDOW (gtk_window_new (GTK_WINDOW_TOPLEVEL));
+	gtk_window_set_default_size (app->window, 500, 375);
 	g_signal_connect (app->window, "destroy", gtk_main_quit, NULL);
+
+	gtk_container_add (GTK_CONTAINER (app->window),
+			   cheese_widget_new ());
+
 	gtk_widget_show_all (GTK_WIDGET (app->window));
 
 	app->zeromq_context = zmq_ctx_new ();
@@ -255,7 +262,10 @@ main (int    argc,
 
 	setlocale (LC_ALL, "en_US.utf8");
 
-	gtk_init (&argc, &argv);
+	if (!cheese_gtk_init (&argc, &argv))
+	{
+		g_error ("Initialization failed.");
+	}
 
 	app_init (&app);
 	gtk_main ();
