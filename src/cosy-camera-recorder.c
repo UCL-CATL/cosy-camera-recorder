@@ -22,6 +22,8 @@
 #include <gtk/gtk.h>
 #include <cheese/cheese-gtk.h>
 #include <cheese/cheese-widget.h>
+#include "cheese-widget-private.h"
+#include <cheese/cheese-camera.h>
 #include <zmq.h>
 #include <stdlib.h>
 #include <string.h>
@@ -34,6 +36,7 @@ typedef struct _CcrApp CcrApp;
 struct _CcrApp
 {
 	GtkWindow *window;
+	CheeseWidget *cheese_widget;
 
 	void *zeromq_context;
 	void *zeromq_replier;
@@ -43,7 +46,6 @@ struct _CcrApp
 	guint recording : 1;
 };
 
-#if 0
 static gchar *
 get_video_filename (void)
 {
@@ -63,7 +65,6 @@ get_video_filename (void)
 	g_date_time_unref (current_time);
 	return filename;
 }
-#endif
 
 /* Receives the next zmq message part as a string.
  * Free the return value with g_free() when no longer needed.
@@ -102,6 +103,8 @@ static char *
 start_recording (CcrApp *app)
 {
 	char *reply;
+	CheeseCamera *camera;
+	gchar *video_filename;
 
 	g_print ("Start recording\n");
 	app->recording = TRUE;
@@ -115,7 +118,10 @@ start_recording (CcrApp *app)
 		g_timer_start (app->timer);
 	}
 
-	/* TODO start recording */
+	camera = CHEESE_CAMERA (cheese_widget_get_camera (app->cheese_widget));
+	video_filename = get_video_filename ();
+	cheese_camera_start_video_recording (camera, video_filename);
+	g_free (video_filename);
 
 	reply = g_strdup ("ack");
 	return reply;
@@ -125,11 +131,13 @@ static char *
 stop_recording (CcrApp *app)
 {
 	char *reply;
+	CheeseCamera *camera;
 
 	g_print ("Stop recording\n");
 	app->recording = FALSE;
 
-	/* TODO stop recording */
+	camera = CHEESE_CAMERA (cheese_widget_get_camera (app->cheese_widget));
+	cheese_camera_stop_video_recording (camera);
 
 	if (app->timer != NULL)
 	{
@@ -203,8 +211,10 @@ app_init (CcrApp *app)
 	gtk_window_set_default_size (app->window, 500, 375);
 	g_signal_connect (app->window, "destroy", gtk_main_quit, NULL);
 
+	app->cheese_widget = CHEESE_WIDGET (cheese_widget_new ());
+
 	gtk_container_add (GTK_CONTAINER (app->window),
-			   cheese_widget_new ());
+			   GTK_WIDGET (app->cheese_widget));
 
 	gtk_widget_show_all (GTK_WIDGET (app->window));
 

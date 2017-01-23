@@ -3,8 +3,8 @@ SRCS = cosy-camera-recorder.c
 
 OBJS = $(SRCS:.c=.o)
 EXECUTABLE = cosy-camera-recorder
-LDFLAGS = `pkg-config --libs glib-2.0 gtk+-3.0 cheese-gtk libczmq`
-CFLAGS = -g `pkg-config --cflags glib-2.0 gtk+-3.0 cheese-gtk libczmq` \
+LDFLAGS = `pkg-config --libs glib-2.0 gtk+-3.0 cheese cheese-gtk libczmq`
+CFLAGS = -g `pkg-config --cflags glib-2.0 gtk+-3.0 cheese cheese-gtk libczmq` \
 	-Wall \
 	-Wextra \
 	-Wundef \
