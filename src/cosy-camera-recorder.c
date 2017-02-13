@@ -22,7 +22,7 @@
 #include <gtk/gtk.h>
 #include <cheese/cheese-gtk.h>
 #include <cheese/cheese-widget.h>
-#include "cheese-widget-private.h"
+#include "libcheese/cheese-widget-private.h"
 #include <cheese/cheese-camera.h>
 #include <zmq.h>
 #include <stdlib.h>
