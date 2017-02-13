@@ -11,9 +11,8 @@ main (void)
 {
 	void *context;
 	void *requester;
-	char *request;
+	const char *request;
 	char *reply;
-	int i;
 
 	context = zmq_ctx_new ();
 
