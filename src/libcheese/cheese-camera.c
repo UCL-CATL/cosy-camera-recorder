@@ -40,7 +40,6 @@
 #include "cheese-camera.h"
 #include "cheese-camera-device.h"
 #include "cheese-camera-device-monitor.h"
-#include "cheese-effect.h"
 
 #define CHEESE_VIDEO_ENC_PRESET "Profile Realtime"
 #define CHEESE_VIDEO_ENC_ALT_PRESET "Cheese Realtime"
@@ -62,17 +61,15 @@ struct _CheeseCameraPrivate
 
   GstElement *camerabin;
   GstElement *video_filter_bin;
-  GstElement *effects_preview_bin;
 
   GstElement *video_source;
   GstElement *camera_source;
 
   ClutterActor *video_texture;
 
-  GstElement *effect_filter, *effects_capsfilter;
   GstElement *video_balance;
-  GstElement *camera_tee, *effects_tee;
-  GstElement *main_valve, *effects_valve;
+  GstElement *camera_tee;
+  GstElement *main_valve;
 
   gboolean is_recording;
   gboolean pipeline_is_playing;
@@ -414,68 +411,6 @@ cheese_camera_set_video_recording (CheeseCamera *camera, GError **error)
 }
 
 /*
- * cheese_camera_create_effects_preview_bin:
- * @camera: a #CheeseCamera
- * @error: a return location for errors
- *
- * Create the #GstBin for effect previews.
- *
- * Returns: %TRUE if the bin creation was successful, %FALSE otherwise
- */
-static gboolean
-cheese_camera_create_effects_preview_bin (CheeseCamera *camera, GError **error)
-{
-    CheeseCameraPrivate *priv = cheese_camera_get_instance_private (camera);
-
-  gboolean ok = TRUE;
-  GstElement *scale;
-  GstPad  *pad;
-
-  g_return_val_if_fail (error == NULL || *error == NULL, FALSE);
-
-  priv->effects_preview_bin = gst_bin_new ("effects_preview_bin");
-
-  if ((priv->effects_valve = gst_element_factory_make ("valve", "effects_valve")) == NULL)
-  {
-    cheese_camera_set_error_element_not_found (error, "effects_valve");
-    return FALSE;
-  }
-  g_object_set (G_OBJECT (priv->effects_valve), "drop", TRUE, NULL);
-  if ((scale = gst_element_factory_make ("videoscale", "effects_scale")) == NULL)
-  {
-    cheese_camera_set_error_element_not_found (error, "videoscale");
-    return FALSE;
-  }
-  if ((priv->effects_capsfilter = gst_element_factory_make ("capsfilter", "effects_capsfilter")) == NULL)
-  {
-    cheese_camera_set_error_element_not_found (error, "capsfilter");
-    return FALSE;
-  }
-  if ((priv->effects_tee = gst_element_factory_make ("tee", "effects_tee")) == NULL)
-  {
-    cheese_camera_set_error_element_not_found (error, "tee");
-    return FALSE;
-  }
-
-  gst_bin_add_many (GST_BIN (priv->effects_preview_bin), priv->effects_valve,
-                    scale, priv->effects_capsfilter, priv->effects_tee, NULL);
-
-  ok &= gst_element_link_many (priv->effects_valve, scale,
-                           priv->effects_capsfilter, priv->effects_tee, NULL);
-
-  /* add ghostpads */
-
-  pad = gst_element_get_static_pad (priv->effects_valve, "sink");
-  gst_element_add_pad (priv->effects_preview_bin, gst_ghost_pad_new ("sink", pad));
-  gst_object_unref (GST_OBJECT (pad));
-
-  if (!ok)
-    g_error ("Unable to create effects preview bin");
-
-  return TRUE;
-}
-
-/*
  * cheese_camera_create_video_filter_bin:
  * @camera: a #CheeseCamera
  * @error: a return location for errors, or %NULL
@@ -493,8 +428,6 @@ cheese_camera_create_video_filter_bin (CheeseCamera *camera, GError **error)
   gboolean ok = TRUE;
   GstPad  *pad;
 
-  cheese_camera_create_effects_preview_bin (camera, error);
-
   priv->video_filter_bin = gst_bin_new ("video_filter_bin");
 
   if ((priv->camera_tee = gst_element_factory_make ("tee", "camera_tee")) == NULL)
@@ -507,28 +440,17 @@ cheese_camera_create_video_filter_bin (CheeseCamera *camera, GError **error)
     cheese_camera_set_error_element_not_found (error, "main_valve");
     return FALSE;
   }
-  if ((priv->effect_filter = gst_element_factory_make ("identity", "effect")) == NULL)
-  {
-    cheese_camera_set_error_element_not_found (error, "identity");
-    return FALSE;
-  }
   if ((priv->video_balance = gst_element_factory_make ("videobalance", "video_balance")) == NULL)
   {
     cheese_camera_set_error_element_not_found (error, "videobalance");
     return FALSE;
   }
 
-  if (error != NULL && *error != NULL)
-    return FALSE;
-
   gst_bin_add_many (GST_BIN (priv->video_filter_bin), priv->camera_tee,
-                    priv->main_valve, priv->effect_filter,
-                    priv->video_balance, priv->effects_preview_bin, NULL);
+                    priv->main_valve, priv->video_balance, NULL);
 
   ok &= gst_element_link_many (priv->camera_tee, priv->main_valve,
-                               priv->effect_filter, priv->video_balance, NULL);
-  gst_pad_link (gst_element_get_request_pad (priv->camera_tee, "src_%u"),
-                gst_element_get_static_pad (priv->effects_preview_bin, "sink"));
+                               priv->video_balance, NULL);
 
   /* add ghostpads */
 
@@ -646,8 +568,6 @@ cheese_camera_set_new_caps (CheeseCamera *camera)
   CheeseCameraPrivate *priv;
   CheeseCameraDevice *device;
   GstCaps *caps;
-  gchar *caps_desc;
-  int width, height;
 
   g_return_if_fail (CHEESE_IS_CAMERA (camera));
 
@@ -676,20 +596,6 @@ cheese_camera_set_new_caps (CheeseCamera *camera)
     caps = gst_caps_fixate (caps);
 
     g_object_set (priv->camerabin, "video-capture-caps", caps, NULL);
-
-    gst_caps_unref (caps);
-
-    width = priv->current_format->width;
-    width = width > 640 ? 640 : width;
-    height = width * priv->current_format->height
-             / priv->current_format->width;
-    /* GStreamer will crash if this is not a multiple of 2! */
-    height = (height + 1) & ~1;
-    caps_desc = g_strdup_printf ("video/x-raw, width=%d, height=%d", width,
-                                 height);
-    caps = gst_caps_from_string (caps_desc);
-    g_free (caps_desc);
-    g_object_set (priv->effects_capsfilter, "caps", caps, NULL);
   }
   gst_caps_unref (caps);
 }
