@@ -72,7 +72,6 @@ struct _CheeseCameraPrivate
   GstElement *video_balance;
   GstElement *camera_tee, *effects_tee;
   GstElement *main_valve, *effects_valve;
-  gchar *current_effect_desc;
 
   gboolean is_recording;
   gboolean pipeline_is_playing;
@@ -512,7 +511,6 @@ cheese_camera_create_video_filter_bin (CheeseCamera *camera, GError **error)
     cheese_camera_set_error_element_not_found (error, "identity");
     return FALSE;
   }
-  priv->current_effect_desc = g_strdup("identity");
   if ((priv->video_balance = gst_element_factory_make ("videobalance", "video_balance")) == NULL)
   {
     cheese_camera_set_error_element_not_found (error, "videobalance");
@@ -979,7 +977,6 @@ cheese_camera_finalize (GObject *object)
   if (priv->camerabin != NULL)
     gst_object_unref (priv->camerabin);
 
-  g_free (priv->current_effect_desc);
   g_clear_object (&priv->device);
   g_boxed_free (CHEESE_TYPE_VIDEO_FORMAT, priv->current_format);
 
