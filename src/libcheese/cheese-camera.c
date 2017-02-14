@@ -68,7 +68,6 @@ struct _CheeseCameraPrivate
   ClutterActor *video_texture;
 
   GstElement *video_balance;
-  GstElement *camera_tee;
   GstElement *main_valve;
 
   gboolean is_recording;
@@ -430,11 +429,6 @@ cheese_camera_create_video_filter_bin (CheeseCamera *camera, GError **error)
 
   priv->video_filter_bin = gst_bin_new ("video_filter_bin");
 
-  if ((priv->camera_tee = gst_element_factory_make ("tee", "camera_tee")) == NULL)
-  {
-    cheese_camera_set_error_element_not_found (error, "tee");
-    return FALSE;
-  }
   if ((priv->main_valve = gst_element_factory_make ("valve", "main_valve")) == NULL)
   {
     cheese_camera_set_error_element_not_found (error, "main_valve");
@@ -446,11 +440,10 @@ cheese_camera_create_video_filter_bin (CheeseCamera *camera, GError **error)
     return FALSE;
   }
 
-  gst_bin_add_many (GST_BIN (priv->video_filter_bin), priv->camera_tee,
+  gst_bin_add_many (GST_BIN (priv->video_filter_bin),
                     priv->main_valve, priv->video_balance, NULL);
 
-  ok &= gst_element_link_many (priv->camera_tee, priv->main_valve,
-                               priv->video_balance, NULL);
+  ok &= gst_element_link_many (priv->main_valve, priv->video_balance, NULL);
 
   /* add ghostpads */
 
@@ -458,7 +451,7 @@ cheese_camera_create_video_filter_bin (CheeseCamera *camera, GError **error)
   gst_element_add_pad (priv->video_filter_bin, gst_ghost_pad_new ("src", pad));
   gst_object_unref (GST_OBJECT (pad));
 
-  pad = gst_element_get_static_pad (priv->camera_tee, "sink");
+  pad = gst_element_get_static_pad (priv->main_valve, "sink");
   gst_element_add_pad (priv->video_filter_bin, gst_ghost_pad_new ("sink", pad));
   gst_object_unref (GST_OBJECT (pad));
 
