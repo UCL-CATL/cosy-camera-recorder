@@ -27,7 +27,6 @@
 #include <glib-object.h>
 #include <clutter/clutter.h>
 #include <cheese-camera-device.h>
-#include <cheese-effect.h>
 #include <gdk-pixbuf/gdk-pixbuf.h>
 
 G_BEGIN_DECLS
@@ -102,9 +101,6 @@ const CheeseVideoFormat *cheese_camera_get_current_video_format (CheeseCamera *c
 void                     cheese_camera_setup (CheeseCamera *camera, CheeseCameraDevice *device, GError **error);
 void                     cheese_camera_play (CheeseCamera *camera);
 void                     cheese_camera_stop (CheeseCamera *camera);
-void                     cheese_camera_connect_effect_texture (CheeseCamera *camera,
-                                                               CheeseEffect *effect,
-                                                               ClutterActor *texture);
 void                cheese_camera_start_video_recording (CheeseCamera *camera, const gchar *filename);
 void                cheese_camera_stop_video_recording (CheeseCamera *camera);
 CheeseCameraDevice *cheese_camera_get_selected_device (CheeseCamera *camera);

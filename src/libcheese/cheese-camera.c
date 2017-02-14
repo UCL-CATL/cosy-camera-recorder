@@ -40,6 +40,7 @@
 #include "cheese-camera.h"
 #include "cheese-camera-device.h"
 #include "cheese-camera-device-monitor.h"
+#include "cheese-effect.h"
 
 #define CHEESE_VIDEO_ENC_PRESET "Profile Realtime"
 #define CHEESE_VIDEO_ENC_ALT_PRESET "Cheese Realtime"
@@ -723,130 +724,6 @@ cheese_camera_stop (CheeseCamera *camera)
   if (priv->camerabin != NULL)
     gst_element_set_state (priv->camerabin, GST_STATE_NULL);
   priv->pipeline_is_playing = FALSE;
-}
-
-/*
- * cheese_camera_element_from_effect:
- * @camera: a #CheeseCamera
- * @effect: the #CheeseEffect to use as the template
- *
- * Create a new #GstElement based on the @effect template.
- *
- * Returns: a new #GstElement
- */
-static GstElement *
-cheese_camera_element_from_effect (CheeseCamera *camera, CheeseEffect *effect)
-{
-  gchar      *effects_pipeline_desc;
-  gchar      *name;
-  GstElement *effect_filter;
-  GError     *err = NULL;
-  gchar      *effect_desc;
-  GstElement *colorspace1;
-  GstElement *colorspace2;
-  GstPad     *pad;
-
-  g_object_get (G_OBJECT (effect),
-                "pipeline-desc", &effect_desc,
-                "name", &name, NULL);
-
-  effects_pipeline_desc = g_strconcat ("videoconvert name=colorspace1 ! ",
-                                       effect_desc,
-                                       " ! videoconvert name=colorspace2",
-                                       NULL);
-  g_free (effect_desc);
-  effect_filter = gst_parse_bin_from_description (effects_pipeline_desc, FALSE, &err);
-  g_free (effects_pipeline_desc);
-  if (!effect_filter || (err != NULL))
-  {
-    g_clear_error (&err);
-    g_warning ("Error with effect filter %s. Ignored", name);
-    g_free (name);
-    return NULL;
-  }
-  g_free (name);
-
-
-  /* Add ghost pads to effect_filter bin */
-  colorspace1 = gst_bin_get_by_name (GST_BIN (effect_filter), "colorspace1");
-  colorspace2 = gst_bin_get_by_name (GST_BIN (effect_filter), "colorspace2");
-
-  pad = gst_element_get_static_pad (colorspace1, "sink");
-  gst_element_add_pad (effect_filter, gst_ghost_pad_new ("sink", pad));
-  gst_object_unref (GST_OBJECT (pad));
-  gst_object_unref (GST_OBJECT (colorspace1));
-
-  pad = gst_element_get_static_pad (colorspace2, "src");
-  gst_element_add_pad (effect_filter, gst_ghost_pad_new ("src", pad));
-  gst_object_unref (GST_OBJECT (pad));
-  gst_object_unref (GST_OBJECT (colorspace2));
-
-  return effect_filter;
-}
-
-static void
-cheese_camera_connected_size_change_cb (ClutterGstContent *content, gint width, gint height, ClutterActor *actor)
-{
-  clutter_actor_set_size (actor, width, height);
-}
-
-/**
- * cheese_camera_connect_effect_texture:
- * @camera: a #CheeseCamera
- * @effect: a #CheeseEffect
- * @texture: a #ClutterActor
- *
- * Connect the supplied @texture to the @camera, using @effect.
- */
-void
-cheese_camera_connect_effect_texture (CheeseCamera *camera, CheeseEffect *effect, ClutterActor *texture)
-{
-  CheeseCameraPrivate *priv;
-  GstElement *effect_filter;
-  GstElement *display_element;
-  GstElement *display_queue;
-  GstElement *control_valve;
-  gboolean ok;
-  g_return_if_fail (CHEESE_IS_CAMERA (camera));
-
-    priv = cheese_camera_get_instance_private (camera);
-  ok = TRUE;
-
-  g_object_set (G_OBJECT (priv->effects_valve), "drop", TRUE, NULL);
-
-  control_valve = gst_element_factory_make ("valve", NULL);
-  g_object_set (G_OBJECT (effect), "control-valve", control_valve, NULL);
-
-  display_queue = gst_element_factory_make ("queue", NULL);
-
-  effect_filter = cheese_camera_element_from_effect (camera, effect);
-
-  display_element = GST_ELEMENT (clutter_gst_video_sink_new ());
-  g_object_set (G_OBJECT (texture),
-                "content", g_object_new (CLUTTER_GST_TYPE_CONTENT,
-                                         "sink", display_element,
-                                         NULL),
-                NULL);
-
-  g_signal_connect (G_OBJECT (clutter_actor_get_content (texture)),
-                    "size-change", G_CALLBACK (cheese_camera_connected_size_change_cb), texture);
-
-  gst_bin_add_many (GST_BIN (priv->video_filter_bin), control_valve, effect_filter, display_queue, display_element, NULL);
-
-  ok = gst_element_link_many (priv->effects_tee, control_valve, effect_filter, display_queue, display_element, NULL);
-  g_return_if_fail (ok);
-
-  /* HACK: I don't understand GStreamer enough to know why this works. */
-  gst_element_set_state (control_valve, GST_STATE_PLAYING);
-  gst_element_set_state (effect_filter, GST_STATE_PLAYING);
-  gst_element_set_state (display_queue, GST_STATE_PLAYING);
-  gst_element_set_state (display_element, GST_STATE_PLAYING);
-  gst_element_set_locked_state (display_element, TRUE);
-
-  if (!ok)
-      g_warning ("Could not create effects pipeline");
-
-  g_object_set (G_OBJECT (priv->effects_valve), "drop", FALSE, NULL);
 }
 
 /*
