@@ -10,7 +10,6 @@ cheese_headers =			\
 	cheese-camera.h			\
 	cheese-camera-device.h		\
 	cheese-camera-device-monitor.h	\
-	cheese-effect.h			\
 	cheese-fileutil.h		\
 	cheese-gtk.h			\
 	cheese-widget.h			\
@@ -22,7 +21,6 @@ cheese_c_files =			\
 	cheese-camera.c			\
 	cheese-camera-device.c		\
 	cheese-camera-device-monitor.c	\
-	cheese-effect.c			\
 	cheese-fileutil.c		\
 	cheese-gtk.c			\
 	cheese-widget.c			\
