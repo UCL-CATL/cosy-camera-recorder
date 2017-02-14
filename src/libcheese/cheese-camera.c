@@ -40,9 +40,6 @@
 #include "cheese-camera-device.h"
 #include "cheese-camera-device-monitor.h"
 
-#define CHEESE_VIDEO_ENC_PRESET "Profile Realtime"
-#define CHEESE_VIDEO_ENC_ALT_PRESET "Cheese Realtime"
-
 /**
  * SECTION:cheese-camera
  * @short_description: A representation of the video capture device inside
@@ -350,62 +347,40 @@ static void
 cheese_camera_set_video_recording (CheeseCamera *camera, GError **error)
 {
   CheeseCameraPrivate *priv = cheese_camera_get_instance_private (camera);
-  GstEncodingContainerProfile *prof;
-  GstEncodingVideoProfile *v_prof;
+  GstEncodingContainerProfile *container_prof;
+  GstEncodingVideoProfile *video_prof;
   GstCaps *caps;
-  GstElement *video_enc;
-  const gchar *video_preset;
-  gboolean res;
 
-  /* Check if we can use global preset for vp8enc. */
-  video_enc = gst_element_factory_make ("vp8enc", "vp8enc");
-  video_preset = (gchar *) &CHEESE_VIDEO_ENC_PRESET;
-  res = gst_preset_load_preset (GST_PRESET (video_enc), video_preset);
-  if (res == FALSE) {
-    g_warning("Can't find vp8enc preset: \"%s\", using alternate preset:"
-        " \"%s\". If you see this, make a bug report!",
-        video_preset, CHEESE_VIDEO_ENC_ALT_PRESET);
-
-    /* If global preset not found, then probably we use wrong preset name,
-     * or old gstreamer version. In any case, we should try to control
-     * keep poker face and not fail. DON'T FORGET TO MAKE A BUG REPORT!*/
-    video_preset = (gchar *) &CHEESE_VIDEO_ENC_ALT_PRESET;
-    res = gst_preset_load_preset (GST_PRESET (video_enc), video_preset);
-    if (res == FALSE) {
-      g_warning ("Can't find vp8enc preset: \"%s\", "
-          "creating new userspace preset.", video_preset);
-
-      /* Seems like we do first run and userspace preset do not exist.
-       * Let us create a new one. It will be probably located some where here:
-       * ~/.local/share/gstreamer-1.0/presets/GstVP8Enc.prs */
-      g_object_set (G_OBJECT (video_enc), "speed", 2, NULL);
-      g_object_set (G_OBJECT (video_enc), "max-latency", 1, NULL);
-      gst_preset_save_preset (GST_PRESET (video_enc), video_preset);
-    }
-  }
-  gst_object_unref(video_enc);
-
-  /* create profile for webm encoding */
-  caps = gst_caps_from_string("video/webm");
-  prof = gst_encoding_container_profile_new("WebM audio/video",
-      "Standard WebM/VP8/Vorbis",
-      caps, NULL);
+  caps = gst_caps_new_simple ("video/quicktime",
+                              "variant", G_TYPE_STRING, "iso",
+                              NULL);
+  container_prof = gst_encoding_container_profile_new ("MP4 video",
+                                                       "Standard MP4/MPEG-4",
+                                                       caps,
+                                                       NULL);
   gst_caps_unref (caps);
 
-  caps = gst_caps_from_string("video/x-vp8");
-  v_prof = gst_encoding_video_profile_new(caps, NULL, NULL, 0);
-  gst_encoding_video_profile_set_variableframerate(v_prof, TRUE);
-  gst_encoding_profile_set_preset((GstEncodingProfile*) v_prof, video_preset);
-  gst_encoding_container_profile_add_profile(prof, (GstEncodingProfile*) v_prof);
+  caps = gst_caps_new_simple ("video/mpeg",
+                              "mpegversion", G_TYPE_INT, 4,
+                              NULL);
+  video_prof = gst_encoding_video_profile_new (caps, NULL, NULL, 0);
   gst_caps_unref (caps);
 
-  caps = gst_caps_from_string("audio/x-vorbis");
-  gst_encoding_container_profile_add_profile(prof,
-      (GstEncodingProfile*) gst_encoding_audio_profile_new(caps, NULL, NULL, 0));
-  gst_caps_unref (caps);
+  /* Fixed framerate, so that the timestamps in Pupil Capture will normally be
+   * accurate.
+   * FALSE is the default value, but the code is there to be explicit, and to
+   * know that the function exists (and in case the API breaks in the future).
+   */
+  gst_encoding_video_profile_set_variableframerate (video_prof, FALSE);
 
-  g_object_set (priv->camerabin, "video-profile", prof, NULL);
-  gst_encoding_profile_unref (prof);
+  gst_encoding_container_profile_add_profile (container_prof,
+                                              GST_ENCODING_PROFILE (video_prof));
+
+  g_object_set (priv->camerabin,
+                "video-profile", container_prof,
+                NULL);
+
+  gst_encoding_profile_unref (container_prof);
 }
 
 /*
