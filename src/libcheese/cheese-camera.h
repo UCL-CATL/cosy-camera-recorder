@@ -118,7 +118,6 @@ gboolean cheese_camera_get_balance_property_range (CheeseCamera *camera,
                                                    const gchar *property,
                                                    gdouble *min, gdouble *max, gdouble *def);
 void cheese_camera_set_balance_property (CheeseCamera *camera, const gchar *property, gdouble value);
-void cheese_camera_toggle_effects_pipeline (CheeseCamera *camera, gboolean active);
 gchar *cheese_camera_get_recorded_time (CheeseCamera *camera);
 
 G_END_DECLS

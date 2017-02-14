@@ -76,7 +76,6 @@ struct _CheeseCameraPrivate
 
   gboolean is_recording;
   gboolean pipeline_is_playing;
-  gboolean effect_pipeline_is_playing;
 
   guint num_camera_devices;
   CheeseCameraDevice *device;
@@ -185,8 +184,6 @@ cheese_camera_bus_message_cb (GstBus *bus, GstMessage *message, CheeseCamera *ca
         if (new == GST_STATE_PLAYING)
         {
           g_signal_emit (camera, camera_signals[STATE_FLAGS_CHANGED], 0, new);
-          cheese_camera_toggle_effects_pipeline (camera,
-                                            priv->effect_pipeline_is_playing);
         }
       }
     }
@@ -787,36 +784,6 @@ cheese_camera_element_from_effect (CheeseCamera *camera, CheeseEffect *effect)
   gst_object_unref (GST_OBJECT (colorspace2));
 
   return effect_filter;
-}
-
-/**
- * cheese_camera_toggle_effects_pipeline:
- * @camera: a #CheeseCamera
- * @active: %TRUE if effects pipeline is active, %FALSE otherwise
- *
- * Control whether the effects pipeline is enabled for @camera.
- */
-void
-cheese_camera_toggle_effects_pipeline (CheeseCamera *camera, gboolean active)
-{
-  CheeseCameraPrivate *priv;
-
-  g_return_if_fail (CHEESE_IS_CAMERA (camera));
-
-    priv = cheese_camera_get_instance_private (camera);
-
-  if (active)
-  {
-    g_object_set (G_OBJECT (priv->effects_valve), "drop", FALSE, NULL);
-    if (!priv->is_recording)
-      g_object_set (G_OBJECT (priv->main_valve), "drop", TRUE, NULL);
-  }
-  else
-  {
-    g_object_set (G_OBJECT (priv->effects_valve), "drop", TRUE, NULL);
-    g_object_set (G_OBJECT (priv->main_valve), "drop", FALSE, NULL);
-  }
-  priv->effect_pipeline_is_playing = active;
 }
 
 static void
