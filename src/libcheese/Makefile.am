@@ -1,7 +1,9 @@
-AM_CPPFLAGS =		\
-	-I$(top_srcdir)	\
-	$(DEP_CFLAGS)	\
-	$(WARN_CFLAGS)
+AM_CPPFLAGS =				\
+	-I$(top_srcdir)			\
+	$(DEP_CFLAGS)			\
+	$(WARN_CFLAGS)			\
+	-Wno-switch-enum		\
+	-Wno-deprecated-declarations
 
 cheese_headers =			\
 	cheese.h			\
