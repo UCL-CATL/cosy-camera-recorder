@@ -56,7 +56,6 @@ PKG_CHECK_MODULES(DEP, [
 	clutter-1.0 >= 1.14
 	clutter-gtk-1.0
 	clutter-gst-3.0 >= 3.0.0
-	gnome-video-effects
 	x11
 ])
 
