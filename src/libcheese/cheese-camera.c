@@ -34,8 +34,6 @@
 /* Avoid a warning. */
 #define GST_USE_UNSTABLE_API
 #include <gst/basecamerabinsrc/gstcamerabin-enum.h>
-#include <gst/pbutils/encoding-profile.h>
-#include <X11/Xlib.h>
 
 #include "cheese-camera.h"
 #include "cheese-camera-device.h"
