@@ -102,7 +102,6 @@ const CheeseVideoFormat *cheese_camera_get_current_video_format (CheeseCamera *c
 void                     cheese_camera_setup (CheeseCamera *camera, CheeseCameraDevice *device, GError **error);
 void                     cheese_camera_play (CheeseCamera *camera);
 void                     cheese_camera_stop (CheeseCamera *camera);
-void                     cheese_camera_set_effect (CheeseCamera *camera, CheeseEffect *effect);
 void                     cheese_camera_connect_effect_texture (CheeseCamera *camera,
                                                                CheeseEffect *effect,
                                                                ClutterActor *texture);

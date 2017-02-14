@@ -731,45 +731,6 @@ cheese_camera_stop (CheeseCamera *camera)
 }
 
 /*
- * cheese_camera_change_effect_filter:
- * @camera: a #CheeseCamera
- * @new_filter: the new effect filter to apply
- *
- * Change the current effect to that of @element.
- */
-static void
-cheese_camera_change_effect_filter (CheeseCamera *camera, GstElement *new_filter)
-{
-  CheeseCameraPrivate *priv;
-  gboolean             ok;
-
-  g_return_if_fail (CHEESE_IS_CAMERA (camera));
-
-  priv = cheese_camera_get_instance_private (camera);
-
-  g_object_set (G_OBJECT (priv->main_valve), "drop", TRUE, NULL);
-
-  gst_element_unlink_many (priv->main_valve, priv->effect_filter,
-                           priv->video_balance, NULL);
-
-  g_object_ref (priv->effect_filter);
-  gst_bin_remove (GST_BIN (priv->video_filter_bin), priv->effect_filter);
-  gst_element_set_state (priv->effect_filter, GST_STATE_NULL);
-  g_object_unref (priv->effect_filter);
-
-  gst_bin_add (GST_BIN (priv->video_filter_bin), new_filter);
-  ok = gst_element_link_many (priv->main_valve, new_filter,
-                              priv->video_balance, NULL);
-  gst_element_set_state (new_filter, GST_STATE_PAUSED);
-
-  g_return_if_fail (ok);
-
-  g_object_set (G_OBJECT (priv->main_valve), "drop", FALSE, NULL);
-
-  priv->effect_filter = new_filter;
-}
-
-/*
  * cheese_camera_element_from_effect:
  * @camera: a #CheeseCamera
  * @effect: the #CheeseEffect to use as the template
@@ -826,46 +787,6 @@ cheese_camera_element_from_effect (CheeseCamera *camera, CheeseEffect *effect)
   gst_object_unref (GST_OBJECT (colorspace2));
 
   return effect_filter;
-}
-
-/**
- * cheese_camera_set_effect:
- * @camera: a #CheeseCamera
- * @effect: a #CheeseEffect
- *
- * Set the @effect on the @camera.
- */
-void
-cheese_camera_set_effect (CheeseCamera *camera, CheeseEffect *effect)
-{
-    CheeseCameraPrivate *priv;
-  const gchar *effect_desc = cheese_effect_get_pipeline_desc (effect);
-  GstElement *effect_filter;
-
-  g_return_if_fail (CHEESE_IS_CAMERA (camera));
-
-    priv = cheese_camera_get_instance_private (camera);
-
-    if (strcmp (priv->current_effect_desc, effect_desc) == 0)
-    {
-        GST_INFO_OBJECT (camera, "Effect is: \"%s\", not updating",
-                         effect_desc);
-        return;
-    }
-
-  GST_INFO_OBJECT (camera, "Changing effect to: \"%s\"", effect_desc);
-
-  if (strcmp (effect_desc, "identity") == 0)
-    effect_filter = gst_element_factory_make ("identity", "effect");
-  else
-    effect_filter = cheese_camera_element_from_effect (camera, effect);
-
-    if (effect_filter != NULL)
-    {
-        cheese_camera_change_effect_filter (camera, effect_filter);
-        g_free (priv->current_effect_desc);
-        priv->current_effect_desc = g_strdup (effect_desc);
-    }
 }
 
 /**
