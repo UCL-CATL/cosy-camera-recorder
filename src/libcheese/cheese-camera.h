@@ -59,8 +59,6 @@ struct _CheeseCameraClass
   GObjectClass parent_class;
 
   /*< public >*/
-  void (*photo_saved)(CheeseCamera *camera);
-  void (*photo_taken)(CheeseCamera *camera, GdkPixbuf *pixbuf);
   void (*video_saved)(CheeseCamera *camera);
   void (*state_flags_changed)(CheeseCamera *camera, GstState new_state);
 };
@@ -110,8 +108,6 @@ void                     cheese_camera_connect_effect_texture (CheeseCamera *cam
                                                                ClutterActor *texture);
 void                cheese_camera_start_video_recording (CheeseCamera *camera, const gchar *filename);
 void                cheese_camera_stop_video_recording (CheeseCamera *camera);
-gboolean            cheese_camera_take_photo (CheeseCamera *camera, const gchar *filename);
-gboolean            cheese_camera_take_photo_pixbuf (CheeseCamera *camera);
 CheeseCameraDevice *cheese_camera_get_selected_device (CheeseCamera *camera);
 GPtrArray *         cheese_camera_get_camera_devices (CheeseCamera *camera);
 void                cheese_camera_set_device (CheeseCamera *camera, CheeseCameraDevice *device);
