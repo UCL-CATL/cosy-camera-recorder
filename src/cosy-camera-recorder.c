@@ -42,8 +42,10 @@ struct _CcrApp
 	guint recording : 1;
 };
 
+#if 0
 /* Prototypes */
 static void create_pipeline (CcrApp *app);
+#endif
 
 static void
 list_devices (void)
@@ -128,8 +130,12 @@ bus_message_eos_cb (GstBus     *bus,
 {
 	g_print ("End of stream.\n\n");
 
+#if 0
 	destroy_pipeline (app);
 	create_pipeline (app);
+#else
+	g_main_loop_quit (app->main_loop);
+#endif
 }
 
 static void
@@ -167,6 +173,10 @@ create_pipeline (CcrApp *app)
 		g_error ("Failed to create v4l2src GStreamer element.");
 	}
 
+	g_object_set (v4l2src,
+		      "num-buffers", 100,
+		      NULL);
+
 	queue = gst_element_factory_make ("queue", NULL);
 	if (queue == NULL)
 	{
@@ -203,7 +213,11 @@ create_pipeline (CcrApp *app)
 		g_warning ("Failed to link GStreamer elements.");
 	}
 
+#if 0
 	gst_element_set_state (app->pipeline, GST_STATE_PAUSED);
+#else
+	gst_element_set_state (app->pipeline, GST_STATE_PLAYING);
+#endif
 
 	g_print ("Listening to ZeroMQ requests.\n");
 	g_print ("Will save the video to: %s\n", filename);
@@ -211,6 +225,7 @@ create_pipeline (CcrApp *app)
 	g_free (filename);
 }
 
+#if 0
 /* Receives the next zmq message part as a string.
  * Free the return value with g_free() when no longer needed.
  */
@@ -338,6 +353,7 @@ timeout_cb (gpointer user_data)
 
 	return G_SOURCE_CONTINUE;
 }
+#endif
 
 static void
 app_init (CcrApp *app)
@@ -375,8 +391,10 @@ app_init (CcrApp *app)
 
 	create_pipeline (app);
 
+#if 0
 	/* ZeroMQ polling every 5ms */
 	g_timeout_add (5, timeout_cb, app);
+#endif
 }
 
 static void
