@@ -14,7 +14,6 @@ AX_IS_RELEASE([git-directory])
 # Dependencies
 GLIB_REQUIRED_VERSION=2.48
 GTK_REQUIRED_VERSION=3.20
-CHEESE_REQUIRED_VERSION=3.20
 LIBCZMQ_REQUIRED_VERSION=3.0
 
 AC_CONFIG_SRCDIR([src/cosy-camera-recorder.c])
@@ -29,8 +28,6 @@ m4_ifdef([AM_SILENT_RULES], [AM_SILENT_RULES([yes])])
 AC_PROG_CC
 AC_PROG_INSTALL
 
-AC_PATH_PROG([GLIB_MKENUMS], [glib-mkenums])
-
 # Initialize libtool
 LT_PREREQ([2.2.6])
 LT_INIT([disable-static])
@@ -39,24 +36,12 @@ LT_INIT([disable-static])
 AX_REQUIRE_DEFINED([AX_COMPILER_FLAGS])
 AX_COMPILER_FLAGS([WARN_CFLAGS], [WARN_LDFLAGS])
 
-# Dependencies
-
-# Find an appropriate libm, for fmod()
-LT_LIB_M
-
+# pkg-config
 AX_REQUIRE_DEFINED([PKG_CHECK_MODULES])
 PKG_CHECK_MODULES(DEP, [
 	glib-2.0 >= $GLIB_REQUIRED_VERSION
-	gio-2.0 >= $GLIB_REQUIRED_VERSION
-	gtk+-3.0 >= $GTK_REQUIRED_VERSION
+	gstreamer-1.0
 	libczmq >= $LIBCZMQ_REQUIRED_VERSION
-	gdk-pixbuf-2.0
-	gstreamer-pbutils-1.0
-	gstreamer-plugins-bad-1.0 >= 1.4
-	clutter-1.0 >= 1.14
-	clutter-gtk-1.0
-	clutter-gst-3.0 >= 3.0.0
-	x11
 ])
 
 # i18n
@@ -69,7 +54,6 @@ AC_DEFINE_UNQUOTED([GETTEXT_PACKAGE], ["$GETTEXT_PACKAGE"], [Define to the gette
 AC_CONFIG_FILES([
 	Makefile
 	src/Makefile
-	src/libcheese/Makefile
 	tests/Makefile
 ])
 
