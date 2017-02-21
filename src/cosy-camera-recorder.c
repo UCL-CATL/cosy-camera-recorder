@@ -34,9 +34,8 @@ struct _CcrApp
 	GMainLoop *main_loop;
 	GstElement *pipeline;
 
-	/* ZeroMQ */
-	void *context;
-	void *replier;
+	void *zeromq_context;
+	void *zeromq_replier;
 
 	GTimer *timer;
 
@@ -297,7 +296,7 @@ read_request (CcrApp *app)
 	char *request;
 	char *reply = NULL;
 
-	request = receive_next_message (app->replier);
+	request = receive_next_message (app->zeromq_replier);
 	if (request == NULL)
 	{
 		return;
@@ -320,7 +319,7 @@ read_request (CcrApp *app)
 	}
 
 	g_print ("Send reply to cosy-pupil-client...\n");
-	zmq_send (app->replier,
+	zmq_send (app->zeromq_replier,
 		  reply,
 		  strlen (reply),
 		  0);
@@ -348,10 +347,10 @@ app_init (CcrApp *app)
 
 	app->main_loop = g_main_loop_new (NULL, FALSE);
 
-	app->context = zmq_ctx_new ();
+	app->zeromq_context = zmq_ctx_new ();
 
-	app->replier = zmq_socket (app->context, ZMQ_REP);
-	ok = zmq_bind (app->replier, REPLIER_ENDPOINT);
+	app->zeromq_replier = zmq_socket (app->zeromq_context, ZMQ_REP);
+	ok = zmq_bind (app->zeromq_replier, REPLIER_ENDPOINT);
 	if (ok != 0)
 	{
 		g_error ("Error when creating zmq socket at \"" REPLIER_ENDPOINT "\": %s.\n"
@@ -361,7 +360,7 @@ app_init (CcrApp *app)
 
 	/* Non-blocking */
 	timeout_ms = 0;
-	ok = zmq_setsockopt (app->replier,
+	ok = zmq_setsockopt (app->zeromq_replier,
 			     ZMQ_RCVTIMEO,
 			     &timeout_ms,
 			     sizeof (int));
@@ -385,11 +384,11 @@ app_finalize (CcrApp *app)
 {
 	destroy_pipeline (app);
 
-	zmq_close (app->replier);
-	app->replier = NULL;
+	zmq_close (app->zeromq_replier);
+	app->zeromq_replier = NULL;
 
-	zmq_ctx_destroy (app->context);
-	app->context = NULL;
+	zmq_ctx_destroy (app->zeromq_context);
+	app->zeromq_context = NULL;
 
 	if (app->timer != NULL)
 	{
