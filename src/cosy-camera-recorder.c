@@ -354,7 +354,7 @@ app_init (CcrApp *app)
 	if (ok != 0)
 	{
 		g_error ("Error when creating zmq socket at \"" REPLIER_ENDPOINT "\": %s.\n"
-			 "Is another cosy-fmri-camera-recorder process running?",
+			 "Is another cosy-camera-recorder process running?",
 			 strerror (errno));
 	}
 
