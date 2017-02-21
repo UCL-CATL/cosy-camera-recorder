@@ -208,9 +208,7 @@ create_pipeline (CcrApp *app)
 	GstElement *v4l2src;
 	GstElement *tee;
 	GstElement *save_to_file_bin;
-#if 0
 	GstElement *xvimagesink;
-#endif
 
 	g_assert (app->pipeline == NULL);
 	app->pipeline = gst_pipeline_new ("video-capture-pipeline");
@@ -246,29 +244,23 @@ create_pipeline (CcrApp *app)
 		g_error ("Failed to create tee GStreamer element.");
 	}
 
-#if 0
 	xvimagesink = gst_element_factory_make ("xvimagesink", NULL);
 	if (xvimagesink == NULL)
 	{
 		g_error ("Failed to create xvimagesink GStreamer element.");
 	}
 
-	gst_bin_add_many (GST_BIN (app->pipeline), v4l2src, xvimagesink, NULL);
-
-	if (!gst_element_link_many (v4l2src, xvimagesink, NULL))
-	{
-		g_warning ("Failed to link GStreamer elements.");
-	}
-#endif
-
 	save_to_file_bin = create_save_to_file_bin ();
 
-	gst_bin_add_many (GST_BIN (app->pipeline), v4l2src, tee, save_to_file_bin, NULL);
+	gst_bin_add_many (GST_BIN (app->pipeline), v4l2src, tee, xvimagesink, save_to_file_bin, NULL);
 
 	if (!gst_element_link_many (v4l2src, tee, save_to_file_bin, NULL))
 	{
 		g_error ("Failed to link GStreamer elements.");
 	}
+
+	gst_pad_link (gst_element_get_request_pad (tee, "src_%u"),
+		      gst_element_get_static_pad (xvimagesink, "sink"));
 
 #if 0
 	gst_element_set_state (app->pipeline, GST_STATE_PAUSED);
