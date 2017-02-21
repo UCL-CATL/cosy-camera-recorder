@@ -143,11 +143,14 @@ create_pipeline (CcrApp *app)
 {
 	GstBus *bus;
 	GstElement *v4l2src;
+	GstElement *xvimagesink;
+#if 0
 	GstElement *queue;
 	GstElement *mpeg4enc;
 	GstElement *mp4mux;
 	GstElement *filesink;
 	gchar *filename;
+#endif
 
 	g_assert (app->pipeline == NULL);
 	app->pipeline = gst_pipeline_new ("video-capture-pipeline");
@@ -177,6 +180,20 @@ create_pipeline (CcrApp *app)
 		      "num-buffers", 100,
 		      NULL);
 
+	xvimagesink = gst_element_factory_make ("xvimagesink", NULL);
+	if (xvimagesink == NULL)
+	{
+		g_error ("Failed to create xvimagesink GStreamer element.");
+	}
+
+	gst_bin_add_many (GST_BIN (app->pipeline), v4l2src, xvimagesink, NULL);
+
+	if (!gst_element_link_many (v4l2src, xvimagesink, NULL))
+	{
+		g_warning ("Failed to link GStreamer elements.");
+	}
+
+#if 0
 	queue = gst_element_factory_make ("queue", NULL);
 	if (queue == NULL)
 	{
@@ -212,6 +229,7 @@ create_pipeline (CcrApp *app)
 	{
 		g_warning ("Failed to link GStreamer elements.");
 	}
+#endif
 
 #if 0
 	gst_element_set_state (app->pipeline, GST_STATE_PAUSED);
@@ -219,10 +237,12 @@ create_pipeline (CcrApp *app)
 	gst_element_set_state (app->pipeline, GST_STATE_PLAYING);
 #endif
 
+#if 0
 	g_print ("Listening to ZeroMQ requests.\n");
 	g_print ("Will save the video to: %s\n", filename);
 
 	g_free (filename);
+#endif
 }
 
 #if 0
