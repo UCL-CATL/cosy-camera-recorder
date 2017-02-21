@@ -139,6 +139,46 @@ bus_message_eos_cb (GstBus     *bus,
 }
 
 static GstElement *
+create_xvimagesink_bin (void)
+{
+	GstElement *bin;
+	GstElement *queue;
+	GstElement *xvimagesink;
+
+	bin = gst_bin_new ("xvimagesink-bin");
+
+	queue = gst_element_factory_make ("queue", NULL);
+	if (queue == NULL)
+	{
+		g_error ("Failed to create queue GStreamer element.");
+	}
+
+	xvimagesink = gst_element_factory_make ("xvimagesink", NULL);
+	if (xvimagesink == NULL)
+	{
+		g_error ("Failed to create xvimagesink GStreamer element.");
+	}
+
+	gst_bin_add_many (GST_BIN (bin), queue, xvimagesink, NULL);
+
+	if (!gst_element_link_many (queue, xvimagesink, NULL))
+	{
+		g_error ("Failed to link GStreamer elements.");
+	}
+
+	/* Add ghost pad to the bin */
+	{
+		GstPad *pad;
+
+		pad = gst_element_get_static_pad (queue, "sink");
+		gst_element_add_pad (bin, gst_ghost_pad_new ("sink", pad));
+		gst_object_unref (pad);
+	}
+
+	return bin;
+}
+
+static GstElement *
 create_save_to_file_bin (void)
 {
 	GstElement *bin;
@@ -207,8 +247,8 @@ create_pipeline (CcrApp *app)
 	GstBus *bus;
 	GstElement *v4l2src;
 	GstElement *tee;
+	GstElement *xvimagesink_bin;
 	GstElement *save_to_file_bin;
-	GstElement *xvimagesink;
 
 	g_assert (app->pipeline == NULL);
 	app->pipeline = gst_pipeline_new ("video-capture-pipeline");
@@ -244,15 +284,10 @@ create_pipeline (CcrApp *app)
 		g_error ("Failed to create tee GStreamer element.");
 	}
 
-	xvimagesink = gst_element_factory_make ("xvimagesink", NULL);
-	if (xvimagesink == NULL)
-	{
-		g_error ("Failed to create xvimagesink GStreamer element.");
-	}
-
+	xvimagesink_bin = create_xvimagesink_bin ();
 	save_to_file_bin = create_save_to_file_bin ();
 
-	gst_bin_add_many (GST_BIN (app->pipeline), v4l2src, tee, xvimagesink, save_to_file_bin, NULL);
+	gst_bin_add_many (GST_BIN (app->pipeline), v4l2src, tee, xvimagesink_bin, save_to_file_bin, NULL);
 
 	if (!gst_element_link_many (v4l2src, tee, save_to_file_bin, NULL))
 	{
@@ -260,7 +295,7 @@ create_pipeline (CcrApp *app)
 	}
 
 	gst_pad_link (gst_element_get_request_pad (tee, "src_%u"),
-		      gst_element_get_static_pad (xvimagesink, "sink"));
+		      gst_element_get_static_pad (xvimagesink_bin, "sink"));
 
 #if 0
 	gst_element_set_state (app->pipeline, GST_STATE_PAUSED);
