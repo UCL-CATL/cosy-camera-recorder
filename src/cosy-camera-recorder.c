@@ -138,18 +138,77 @@ bus_message_eos_cb (GstBus     *bus,
 #endif
 }
 
-static void
-create_pipeline (CcrApp *app)
+static GstElement *
+create_save_to_file_bin (void)
 {
-	GstBus *bus;
-	GstElement *v4l2src;
-	GstElement *xvimagesink;
-#if 0
+	GstElement *bin;
 	GstElement *queue;
 	GstElement *mpeg4enc;
 	GstElement *mp4mux;
 	GstElement *filesink;
 	gchar *filename;
+
+	bin = gst_bin_new ("save-to-file-bin");
+
+	queue = gst_element_factory_make ("queue", NULL);
+	if (queue == NULL)
+	{
+		g_error ("Failed to create queue GStreamer element.");
+	}
+
+	mpeg4enc = gst_element_factory_make ("avenc_mpeg4", NULL);
+	if (mpeg4enc == NULL)
+	{
+		g_error ("Failed to create avenc_mpeg4 GStreamer element.");
+	}
+
+	mp4mux = gst_element_factory_make ("mp4mux", NULL);
+	if (mp4mux == NULL)
+	{
+		g_error ("Failed to create mp4mux GStreamer element.");
+	}
+
+	filesink = gst_element_factory_make ("filesink", NULL);
+	if (filesink == NULL)
+	{
+		g_error ("Failed to create filesink GStreamer element.");
+	}
+
+	filename = get_video_filename ();
+	g_object_set (filesink,
+		      "location", filename,
+		      NULL);
+
+	gst_bin_add_many (GST_BIN (bin), queue, mpeg4enc, mp4mux, filesink, NULL);
+
+	if (!gst_element_link_many (queue, mpeg4enc, mp4mux, filesink, NULL))
+	{
+		g_error ("Failed to link GStreamer elements.");
+	}
+
+	/* Add ghost pad to the bin */
+	{
+		GstPad *pad;
+
+		pad = gst_element_get_static_pad (queue, "sink");
+		gst_element_add_pad (bin, gst_ghost_pad_new ("sink", pad));
+		gst_object_unref (pad);
+	}
+
+	g_print ("Will save the video to: %s\n", filename);
+	g_free (filename);
+
+	return bin;
+}
+
+static void
+create_pipeline (CcrApp *app)
+{
+	GstBus *bus;
+	GstElement *v4l2src;
+	GstElement *save_to_file_bin;
+#if 0
+	GstElement *xvimagesink;
 #endif
 
 	g_assert (app->pipeline == NULL);
@@ -180,6 +239,7 @@ create_pipeline (CcrApp *app)
 		      "num-buffers", 100,
 		      NULL);
 
+#if 0
 	xvimagesink = gst_element_factory_make ("xvimagesink", NULL);
 	if (xvimagesink == NULL)
 	{
@@ -192,44 +252,16 @@ create_pipeline (CcrApp *app)
 	{
 		g_warning ("Failed to link GStreamer elements.");
 	}
-
-#if 0
-	queue = gst_element_factory_make ("queue", NULL);
-	if (queue == NULL)
-	{
-		g_error ("Failed to create queue GStreamer element.");
-	}
-
-	mpeg4enc = gst_element_factory_make ("avenc_mpeg4", NULL);
-	if (mpeg4enc == NULL)
-	{
-		g_error ("Failed to create avenc_mpeg4 GStreamer element.");
-	}
-
-	mp4mux = gst_element_factory_make ("mp4mux", NULL);
-	if (mp4mux == NULL)
-	{
-		g_error ("Failed to create mp4mux GStreamer element.");
-	}
-
-	filesink = gst_element_factory_make ("filesink", NULL);
-	if (filesink == NULL)
-	{
-		g_error ("Failed to create filesink GStreamer element.");
-	}
-
-	filename = get_video_filename ();
-	g_object_set (filesink,
-		      "location", filename,
-		      NULL);
-
-	gst_bin_add_many (GST_BIN (app->pipeline), v4l2src, queue, mpeg4enc, mp4mux, filesink, NULL);
-
-	if (!gst_element_link_many (v4l2src, queue, mpeg4enc, mp4mux, filesink, NULL))
-	{
-		g_warning ("Failed to link GStreamer elements.");
-	}
 #endif
+
+	save_to_file_bin = create_save_to_file_bin ();
+
+	gst_bin_add_many (GST_BIN (app->pipeline), v4l2src, save_to_file_bin, NULL);
+
+	if (!gst_element_link_many (v4l2src, save_to_file_bin, NULL))
+	{
+		g_error ("Failed to link GStreamer elements.");
+	}
 
 #if 0
 	gst_element_set_state (app->pipeline, GST_STATE_PAUSED);
@@ -239,9 +271,6 @@ create_pipeline (CcrApp *app)
 
 #if 0
 	g_print ("Listening to ZeroMQ requests.\n");
-	g_print ("Will save the video to: %s\n", filename);
-
-	g_free (filename);
 #endif
 }
 
