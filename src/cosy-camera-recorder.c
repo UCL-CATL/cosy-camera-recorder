@@ -289,13 +289,13 @@ create_pipeline (CcrApp *app)
 
 	gst_bin_add_many (GST_BIN (app->pipeline), v4l2src, tee, xvimagesink_bin, save_to_file_bin, NULL);
 
-	if (!gst_element_link_many (v4l2src, tee, save_to_file_bin, NULL))
+	if (!gst_element_link_many (v4l2src, tee, xvimagesink_bin, NULL))
 	{
 		g_error ("Failed to link GStreamer elements.");
 	}
 
 	gst_pad_link (gst_element_get_request_pad (tee, "src_%u"),
-		      gst_element_get_static_pad (xvimagesink_bin, "sink"));
+		      gst_element_get_static_pad (save_to_file_bin, "sink"));
 
 #if 0
 	gst_element_set_state (app->pipeline, GST_STATE_PAUSED);
