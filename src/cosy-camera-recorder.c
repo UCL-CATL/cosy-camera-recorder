@@ -206,6 +206,7 @@ create_pipeline (CcrApp *app)
 {
 	GstBus *bus;
 	GstElement *v4l2src;
+	GstElement *tee;
 	GstElement *save_to_file_bin;
 #if 0
 	GstElement *xvimagesink;
@@ -239,6 +240,12 @@ create_pipeline (CcrApp *app)
 		      "num-buffers", 100,
 		      NULL);
 
+	tee = gst_element_factory_make ("tee", NULL);
+	if (tee == NULL)
+	{
+		g_error ("Failed to create tee GStreamer element.");
+	}
+
 #if 0
 	xvimagesink = gst_element_factory_make ("xvimagesink", NULL);
 	if (xvimagesink == NULL)
@@ -256,9 +263,9 @@ create_pipeline (CcrApp *app)
 
 	save_to_file_bin = create_save_to_file_bin ();
 
-	gst_bin_add_many (GST_BIN (app->pipeline), v4l2src, save_to_file_bin, NULL);
+	gst_bin_add_many (GST_BIN (app->pipeline), v4l2src, tee, save_to_file_bin, NULL);
 
-	if (!gst_element_link_many (v4l2src, save_to_file_bin, NULL))
+	if (!gst_element_link_many (v4l2src, tee, save_to_file_bin, NULL))
 	{
 		g_error ("Failed to link GStreamer elements.");
 	}
