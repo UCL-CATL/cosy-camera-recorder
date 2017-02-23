@@ -3,7 +3,7 @@ dnl Process this file with autoconf to produce a configure script.
 AC_PREREQ(2.64)
 
 AC_INIT([cosy-camera-recorder],
-        [0.0.1],
+        [0.3.1],
 	[https://github.com/UCL-CATL/cosy-camera-recorder/issues],
 	[cosy-camera-recorder],
 	[https://github.com/UCL-CATL/cosy-camera-recorder])
