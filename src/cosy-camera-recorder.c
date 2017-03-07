@@ -183,6 +183,7 @@ create_save_to_file_bin (void)
 {
 	GstElement *bin;
 	GstElement *queue;
+	GstElement *videorate;
 	GstElement *mpeg4enc;
 	GstElement *mp4mux;
 	GstElement *filesink;
@@ -194,6 +195,15 @@ create_save_to_file_bin (void)
 	if (queue == NULL)
 	{
 		g_error ("Failed to create queue GStreamer element.");
+	}
+
+	/* To have a fixed framerate. The Pupil doesn't like videos with
+	 * variable framerates.
+	 */
+	videorate = gst_element_factory_make ("videorate", NULL);
+	if (videorate == NULL)
+	{
+		g_error ("Failed to create videorate GStreamer element.");
 	}
 
 	mpeg4enc = gst_element_factory_make ("avenc_mpeg4", NULL);
@@ -219,9 +229,9 @@ create_save_to_file_bin (void)
 		      "location", filename,
 		      NULL);
 
-	gst_bin_add_many (GST_BIN (bin), queue, mpeg4enc, mp4mux, filesink, NULL);
+	gst_bin_add_many (GST_BIN (bin), queue, videorate, mpeg4enc, mp4mux, filesink, NULL);
 
-	if (!gst_element_link_many (queue, mpeg4enc, mp4mux, filesink, NULL))
+	if (!gst_element_link_many (queue, videorate, mpeg4enc, mp4mux, filesink, NULL))
 	{
 		g_error ("Failed to link GStreamer elements.");
 	}
