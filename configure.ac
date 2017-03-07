@@ -41,6 +41,7 @@ AX_REQUIRE_DEFINED([PKG_CHECK_MODULES])
 PKG_CHECK_MODULES(DEP, [
 	glib-2.0 >= $GLIB_REQUIRED_VERSION
 	gstreamer-1.0
+	gstreamer-pbutils-1.0
 	libczmq >= $LIBCZMQ_REQUIRED_VERSION
 ])
 

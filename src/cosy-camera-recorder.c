@@ -24,6 +24,7 @@
 #include <zmq.h>
 #include <string.h>
 #include <gst/gst.h>
+#include <gst/pbutils/encoding-profile.h>
 #define GST_USE_UNSTABLE_API
 #include <gst/basecamerabinsrc/gstcamerabin-enum.h>
 
@@ -141,6 +142,34 @@ bus_message_cb (GstBus     *bus,
 }
 
 static void
+set_video_profile (GstElement *camerabin)
+{
+	GstEncodingContainerProfile *container_prof;
+	GstEncodingVideoProfile *video_prof;
+	GstCaps *caps;
+
+	caps = gst_caps_from_string ("video/quicktime");
+	container_prof = gst_encoding_container_profile_new ("MP4 video",
+							     "Standard MP4/MPEG-4",
+							     caps,
+							     NULL);
+	gst_caps_unref (caps);
+
+	caps = gst_caps_from_string ("video/mpeg");
+	video_prof = gst_encoding_video_profile_new (caps, NULL, NULL, 0);
+	gst_caps_unref (caps);
+
+	gst_encoding_container_profile_add_profile (container_prof,
+						    GST_ENCODING_PROFILE (video_prof));
+
+	g_object_set (camerabin,
+		      "video-profile", container_prof,
+		      NULL);
+
+	gst_encoding_profile_unref (container_prof);
+}
+
+static void
 create_pipeline (CcrApp *app)
 {
 	GstBus *bus;
@@ -170,8 +199,9 @@ create_pipeline (CcrApp *app)
 		      "mode", MODE_VIDEO,
 		      NULL);
 
-	gst_bin_add (GST_BIN (app->pipeline), app->camerabin);
+	set_video_profile (app->camerabin);
 
+	gst_bin_add (GST_BIN (app->pipeline), app->camerabin);
 	gst_element_set_state (app->pipeline, GST_STATE_PLAYING);
 }
 
