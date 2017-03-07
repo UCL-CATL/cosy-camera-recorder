@@ -35,6 +35,7 @@ struct _CcrApp
 {
 	GMainLoop *main_loop;
 	GstElement *pipeline;
+	GstElement *camerabin;
 
 	void *zeromq_context;
 	void *zeromq_replier;
@@ -72,7 +73,6 @@ list_devices (void)
 	gst_object_unref (monitor);
 }
 
-#if 0
 static gchar *
 get_video_filename (void)
 {
@@ -92,7 +92,6 @@ get_video_filename (void)
 	g_date_time_unref (current_time);
 	return filename;
 }
-#endif
 
 static void
 destroy_pipeline (CcrApp *app)
@@ -135,9 +134,10 @@ static void
 create_pipeline (CcrApp *app)
 {
 	GstBus *bus;
-	GstElement *camerabin;
 
 	g_assert (app->pipeline == NULL);
+	g_assert (app->camerabin == NULL);
+
 	app->pipeline = gst_pipeline_new ("video-capture-pipeline");
 
 	bus = gst_pipeline_get_bus (GST_PIPELINE (app->pipeline));
@@ -155,26 +155,21 @@ create_pipeline (CcrApp *app)
 
 	gst_object_unref (bus);
 
-	camerabin = gst_element_factory_make ("camerabin", NULL);
-	if (camerabin == NULL)
+	app->camerabin = gst_element_factory_make ("camerabin", NULL);
+	if (app->camerabin == NULL)
 	{
 		g_error ("Failed to create the camerabin GStreamer element.");
 	}
 
-	g_object_set (camerabin,
+	g_object_set (app->camerabin,
 		      "mode", MODE_VIDEO,
 		      NULL);
 
-	gst_bin_add (GST_BIN (app->pipeline), camerabin);
+	gst_bin_add (GST_BIN (app->pipeline), app->camerabin);
 
 	gst_element_set_state (app->pipeline, GST_STATE_PLAYING);
-
-#if 0
-	g_print ("Listening to ZeroMQ requests.\n");
-#endif
 }
 
-#if 0
 /* Receives the next zmq message part as a string.
  * Free the return value with g_free() when no longer needed.
  */
@@ -208,10 +203,11 @@ receive_next_message (void *socket)
 	return str;
 }
 
-static char *
+static gchar *
 start_recording (CcrApp *app)
 {
-	char *reply;
+	gchar *reply;
+	gchar *location;
 
 	g_print ("Start recording\n");
 	app->recording = TRUE;
@@ -225,7 +221,14 @@ start_recording (CcrApp *app)
 		g_timer_start (app->timer);
 	}
 
-	gst_element_set_state (app->pipeline, GST_STATE_PLAYING);
+	location = get_video_filename ();
+	g_object_set (app->camerabin,
+		      "location", location,
+		      NULL);
+	g_print ("Will save the video to: %s\n", location);
+	g_free (location);
+
+	g_signal_emit_by_name (app->camerabin, "start-capture");
 
 	reply = g_strdup ("ack");
 	return reply;
@@ -239,7 +242,11 @@ stop_recording (CcrApp *app)
 	g_print ("Stop recording\n");
 	app->recording = FALSE;
 
-	gst_element_send_event (app->pipeline, gst_event_new_eos ());
+	g_signal_emit_by_name (app->camerabin, "stop-capture");
+
+	g_object_set (app->camerabin,
+		      "location", NULL,
+		      NULL);
 
 	if (app->timer != NULL)
 	{
@@ -302,7 +309,6 @@ timeout_cb (gpointer user_data)
 
 	return G_SOURCE_CONTINUE;
 }
-#endif
 
 static void
 app_init (CcrApp *app)
@@ -340,10 +346,9 @@ app_init (CcrApp *app)
 
 	create_pipeline (app);
 
-#if 0
 	/* ZeroMQ polling every 5ms */
 	g_timeout_add (5, timeout_cb, app);
-#endif
+	g_print ("Listening to ZeroMQ requests.\n");
 }
 
 static void
