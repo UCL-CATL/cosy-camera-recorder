@@ -42,11 +42,6 @@ struct _CcrApp
 	guint recording : 1;
 };
 
-#if 0
-/* Prototypes */
-static void create_pipeline (CcrApp *app);
-#endif
-
 static void
 list_devices (void)
 {
@@ -75,6 +70,7 @@ list_devices (void)
 	gst_object_unref (monitor);
 }
 
+#if 0
 static gchar *
 get_video_filename (void)
 {
@@ -94,6 +90,7 @@ get_video_filename (void)
 	g_date_time_unref (current_time);
 	return filename;
 }
+#endif
 
 static void
 destroy_pipeline (CcrApp *app)
@@ -129,126 +126,14 @@ bus_message_eos_cb (GstBus     *bus,
 		    CcrApp     *app)
 {
 	g_print ("End of stream.\n\n");
-
-#if 0
-	destroy_pipeline (app);
-	create_pipeline (app);
-#else
 	g_main_loop_quit (app->main_loop);
-#endif
-}
-
-static GstElement *
-create_xvimagesink_bin (void)
-{
-	GstElement *bin;
-	GstElement *queue;
-	GstElement *xvimagesink;
-
-	bin = gst_bin_new ("xvimagesink-bin");
-
-	queue = gst_element_factory_make ("queue", NULL);
-	if (queue == NULL)
-	{
-		g_error ("Failed to create queue GStreamer element.");
-	}
-
-	xvimagesink = gst_element_factory_make ("xvimagesink", NULL);
-	if (xvimagesink == NULL)
-	{
-		g_error ("Failed to create xvimagesink GStreamer element.");
-	}
-
-	gst_bin_add_many (GST_BIN (bin), queue, xvimagesink, NULL);
-
-	if (!gst_element_link_many (queue, xvimagesink, NULL))
-	{
-		g_error ("Failed to link GStreamer elements.");
-	}
-
-	/* Add ghost pad to the bin */
-	{
-		GstPad *pad;
-
-		pad = gst_element_get_static_pad (queue, "sink");
-		gst_element_add_pad (bin, gst_ghost_pad_new ("sink", pad));
-		gst_object_unref (pad);
-	}
-
-	return bin;
-}
-
-static GstElement *
-create_save_to_file_bin (void)
-{
-	GstElement *bin;
-	GstElement *queue;
-	GstElement *mpeg4enc;
-	GstElement *mp4mux;
-	GstElement *filesink;
-	gchar *filename;
-
-	bin = gst_bin_new ("save-to-file-bin");
-
-	queue = gst_element_factory_make ("queue", NULL);
-	if (queue == NULL)
-	{
-		g_error ("Failed to create queue GStreamer element.");
-	}
-
-	mpeg4enc = gst_element_factory_make ("avenc_mpeg4", NULL);
-	if (mpeg4enc == NULL)
-	{
-		g_error ("Failed to create avenc_mpeg4 GStreamer element.");
-	}
-
-	mp4mux = gst_element_factory_make ("mp4mux", NULL);
-	if (mp4mux == NULL)
-	{
-		g_error ("Failed to create mp4mux GStreamer element.");
-	}
-
-	filesink = gst_element_factory_make ("filesink", NULL);
-	if (filesink == NULL)
-	{
-		g_error ("Failed to create filesink GStreamer element.");
-	}
-
-	filename = get_video_filename ();
-	g_object_set (filesink,
-		      "location", filename,
-		      NULL);
-
-	gst_bin_add_many (GST_BIN (bin), queue, mpeg4enc, mp4mux, filesink, NULL);
-
-	if (!gst_element_link_many (queue, mpeg4enc, mp4mux, filesink, NULL))
-	{
-		g_error ("Failed to link GStreamer elements.");
-	}
-
-	/* Add ghost pad to the bin */
-	{
-		GstPad *pad;
-
-		pad = gst_element_get_static_pad (queue, "sink");
-		gst_element_add_pad (bin, gst_ghost_pad_new ("sink", pad));
-		gst_object_unref (pad);
-	}
-
-	g_print ("Will save the video to: %s\n", filename);
-	g_free (filename);
-
-	return bin;
 }
 
 static void
 create_pipeline (CcrApp *app)
 {
 	GstBus *bus;
-	GstElement *v4l2src;
-	GstElement *tee;
-	GstElement *xvimagesink_bin;
-	GstElement *save_to_file_bin;
+	GstElement *camerabin;
 
 	g_assert (app->pipeline == NULL);
 	app->pipeline = gst_pipeline_new ("video-capture-pipeline");
@@ -268,40 +153,15 @@ create_pipeline (CcrApp *app)
 
 	gst_object_unref (bus);
 
-	v4l2src = gst_element_factory_make ("v4l2src", NULL);
-	if (v4l2src == NULL)
+	camerabin = gst_element_factory_make ("camerabin", NULL);
+	if (camerabin == NULL)
 	{
-		g_error ("Failed to create v4l2src GStreamer element.");
+		g_error ("Failed to create the camerabin GStreamer element.");
 	}
 
-	g_object_set (v4l2src,
-		      "num-buffers", 100,
-		      NULL);
+	gst_bin_add (GST_BIN (app->pipeline), camerabin);
 
-	tee = gst_element_factory_make ("tee", NULL);
-	if (tee == NULL)
-	{
-		g_error ("Failed to create tee GStreamer element.");
-	}
-
-	xvimagesink_bin = create_xvimagesink_bin ();
-	save_to_file_bin = create_save_to_file_bin ();
-
-	gst_bin_add_many (GST_BIN (app->pipeline), v4l2src, tee, xvimagesink_bin, save_to_file_bin, NULL);
-
-	if (!gst_element_link_many (v4l2src, tee, xvimagesink_bin, NULL))
-	{
-		g_error ("Failed to link GStreamer elements.");
-	}
-
-	gst_pad_link (gst_element_get_request_pad (tee, "src_%u"),
-		      gst_element_get_static_pad (save_to_file_bin, "sink"));
-
-#if 0
-	gst_element_set_state (app->pipeline, GST_STATE_PAUSED);
-#else
 	gst_element_set_state (app->pipeline, GST_STATE_PLAYING);
-#endif
 
 #if 0
 	g_print ("Listening to ZeroMQ requests.\n");
