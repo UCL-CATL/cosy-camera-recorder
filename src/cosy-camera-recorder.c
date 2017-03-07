@@ -173,13 +173,13 @@ create_pipeline (CcrApp *app)
 /* Receives the next zmq message part as a string.
  * Free the return value with g_free() when no longer needed.
  */
-static char *
+static gchar *
 receive_next_message (void *socket)
 {
 	zmq_msg_t msg;
-	int n_bytes;
-	char *str = NULL;
-	int ok;
+	gint n_bytes;
+	gchar *str = NULL;
+	gint ok;
 
 	ok = zmq_msg_init (&msg);
 	g_return_val_if_fail (ok == 0, NULL);
@@ -234,10 +234,10 @@ start_recording (CcrApp *app)
 	return reply;
 }
 
-static char *
+static gchar *
 stop_recording (CcrApp *app)
 {
-	char *reply;
+	gchar *reply;
 
 	g_print ("Stop recording\n");
 	app->recording = FALSE;
@@ -264,8 +264,8 @@ stop_recording (CcrApp *app)
 static void
 read_request (CcrApp *app)
 {
-	char *request;
-	char *reply = NULL;
+	gchar *request;
+	gchar *reply = NULL;
 
 	request = receive_next_message (app->zeromq_replier);
 	if (request == NULL)
@@ -313,8 +313,8 @@ timeout_cb (gpointer user_data)
 static void
 app_init (CcrApp *app)
 {
-	int timeout_ms;
-	int ok;
+	gint timeout_ms;
+	gint ok;
 
 	app->main_loop = g_main_loop_new (NULL, FALSE);
 
@@ -334,7 +334,7 @@ app_init (CcrApp *app)
 	ok = zmq_setsockopt (app->zeromq_replier,
 			     ZMQ_RCVTIMEO,
 			     &timeout_ms,
-			     sizeof (int));
+			     sizeof (gint));
 	if (ok != 0)
 	{
 		g_error ("Error when setting ZeroMQ socket option for the replier: %s",
@@ -371,9 +371,9 @@ app_finalize (CcrApp *app)
 	g_main_loop_unref (app->main_loop);
 }
 
-int
-main (int    argc,
-      char **argv)
+gint
+main (gint    argc,
+      gchar **argv)
 {
 	CcrApp app = { 0 };
 
