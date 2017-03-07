@@ -21,9 +21,11 @@
 
 #include <stdlib.h>
 #include <locale.h>
-#include <gst/gst.h>
 #include <zmq.h>
 #include <string.h>
+#include <gst/gst.h>
+#define GST_USE_UNSTABLE_API
+#include <gst/basecamerabinsrc/gstcamerabin-enum.h>
 
 #define REPLIER_ENDPOINT "tcp://*:6001"
 
@@ -158,6 +160,10 @@ create_pipeline (CcrApp *app)
 	{
 		g_error ("Failed to create the camerabin GStreamer element.");
 	}
+
+	g_object_set (camerabin,
+		      "mode", MODE_VIDEO,
+		      NULL);
 
 	gst_bin_add (GST_BIN (app->pipeline), camerabin);
 
