@@ -42,11 +42,6 @@ struct _CcrApp
 	guint recording : 1;
 };
 
-#if 0
-/* Prototypes */
-static void create_pipeline (CcrApp *app);
-#endif
-
 static void
 list_devices (void)
 {
@@ -122,20 +117,13 @@ bus_message_error_cb (GstBus     *bus,
 	g_main_loop_quit (app->main_loop);
 }
 
-/* End-of-stream */
 static void
 bus_message_eos_cb (GstBus     *bus,
 		    GstMessage *message,
 		    CcrApp     *app)
 {
 	g_print ("End of stream.\n\n");
-
-#if 0
-	destroy_pipeline (app);
-	create_pipeline (app);
-#else
 	g_main_loop_quit (app->main_loop);
-#endif
 }
 
 static GstElement *
@@ -307,15 +295,7 @@ create_pipeline (CcrApp *app)
 	gst_pad_link (gst_element_get_request_pad (tee, "src_%u"),
 		      gst_element_get_static_pad (save_to_file_bin, "sink"));
 
-#if 0
-	gst_element_set_state (app->pipeline, GST_STATE_PAUSED);
-#else
 	gst_element_set_state (app->pipeline, GST_STATE_PLAYING);
-#endif
-
-#if 0
-	g_print ("Listening to ZeroMQ requests.\n");
-#endif
 }
 
 #if 0
@@ -487,6 +467,7 @@ app_init (CcrApp *app)
 #if 0
 	/* ZeroMQ polling every 5ms */
 	g_timeout_add (5, timeout_cb, app);
+	g_print ("Listening to ZeroMQ requests.\n");
 #endif
 }
 
