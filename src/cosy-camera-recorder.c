@@ -130,6 +130,14 @@ bus_message_cb (GstBus     *bus,
 		g_print ("End of stream.\n\n");
 		g_main_loop_quit (app->main_loop);
 	}
+	else if (type == GST_MESSAGE_ELEMENT &&
+		 g_strcmp0 (GST_MESSAGE_SRC_NAME (msg), "camerabin") == 0)
+	{
+		const GstStructure *structure;
+
+		structure = gst_message_get_structure (msg);
+		g_print ("camerabin: %s\n", gst_structure_get_name (structure));
+	}
 }
 
 static void
@@ -152,7 +160,7 @@ create_pipeline (CcrApp *app)
 
 	gst_object_unref (bus);
 
-	app->camerabin = gst_element_factory_make ("camerabin", NULL);
+	app->camerabin = gst_element_factory_make ("camerabin", "camerabin");
 	if (app->camerabin == NULL)
 	{
 		g_error ("Failed to create the camerabin GStreamer element.");
