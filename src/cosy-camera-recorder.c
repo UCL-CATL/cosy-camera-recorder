@@ -240,10 +240,10 @@ create_save_to_file_bin_cb (gpointer user_data)
 
 	gst_bin_add (GST_BIN (app->pipeline), save_to_file_bin);
 
+	gst_element_sync_state_with_parent (save_to_file_bin);
+
 	gst_pad_link (gst_element_get_request_pad (app->tee, "src_%u"),
 		      gst_element_get_static_pad (save_to_file_bin, "sink"));
-
-	gst_element_sync_state_with_parent (save_to_file_bin);
 
 	return G_SOURCE_REMOVE;
 }
