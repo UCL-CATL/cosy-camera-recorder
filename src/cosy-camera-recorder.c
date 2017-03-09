@@ -105,29 +105,31 @@ destroy_pipeline (CcrApp *app)
 }
 
 static void
-bus_message_error_cb (GstBus     *bus,
-		      GstMessage *message,
-		      CcrApp     *app)
+bus_message_cb (GstBus     *bus,
+		GstMessage *msg,
+		CcrApp     *app)
 {
-	GError *error;
-	gchar *debug;
+	GstMessageType type;
 
-	gst_message_parse_error (message, &error, &debug);
-	g_print ("Error: %s\n", error->message);
-	g_error_free (error);
-	g_free (debug);
+	type = GST_MESSAGE_TYPE (msg);
 
-	g_main_loop_quit (app->main_loop);
-}
+	if (type == GST_MESSAGE_ERROR)
+	{
+		GError *error;
+		gchar *debug;
 
-/* End-of-stream */
-static void
-bus_message_eos_cb (GstBus     *bus,
-		    GstMessage *message,
-		    CcrApp     *app)
-{
-	g_print ("End of stream.\n\n");
-	g_main_loop_quit (app->main_loop);
+		gst_message_parse_error (msg, &error, &debug);
+		g_print ("Error: %s\n", error->message);
+		g_error_free (error);
+		g_free (debug);
+
+		g_main_loop_quit (app->main_loop);
+	}
+	else if (type == GST_MESSAGE_EOS)
+	{
+		g_print ("End of stream.\n\n");
+		g_main_loop_quit (app->main_loop);
+	}
 }
 
 static void
@@ -144,13 +146,8 @@ create_pipeline (CcrApp *app)
 	gst_bus_add_signal_watch (bus);
 
 	g_signal_connect (bus,
-			  "message::error",
-			  G_CALLBACK (bus_message_error_cb),
-			  app);
-
-	g_signal_connect (bus,
-			  "message::eos",
-			  G_CALLBACK (bus_message_eos_cb),
+			  "message",
+			  G_CALLBACK (bus_message_cb),
 			  app);
 
 	gst_object_unref (bus);
