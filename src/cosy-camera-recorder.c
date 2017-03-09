@@ -32,7 +32,9 @@ typedef struct _CcrApp CcrApp;
 struct _CcrApp
 {
 	GMainLoop *main_loop;
+
 	GstElement *pipeline;
+	GstElement *tee;
 
 	void *zeromq_context;
 	void *zeromq_replier;
@@ -228,16 +230,34 @@ create_save_to_file_bin (void)
 	return bin;
 }
 
+static gboolean
+create_save_to_file_bin_cb (gpointer user_data)
+{
+	CcrApp *app = user_data;
+	GstElement *save_to_file_bin;
+
+	save_to_file_bin = create_save_to_file_bin ();
+
+	gst_bin_add (GST_BIN (app->pipeline), save_to_file_bin);
+
+	gst_pad_link (gst_element_get_request_pad (app->tee, "src_%u"),
+		      gst_element_get_static_pad (save_to_file_bin, "sink"));
+
+	gst_element_sync_state_with_parent (save_to_file_bin);
+
+	return G_SOURCE_REMOVE;
+}
+
 static void
 create_pipeline (CcrApp *app)
 {
 	GstBus *bus;
 	GstElement *v4l2src;
-	GstElement *tee;
 	GstElement *xvimagesink_bin;
-	GstElement *save_to_file_bin;
 
 	g_assert (app->pipeline == NULL);
+	g_assert (app->tee == NULL);
+
 	app->pipeline = gst_pipeline_new ("video-capture-pipeline");
 
 	bus = gst_pipeline_get_bus (GST_PIPELINE (app->pipeline));
@@ -265,26 +285,24 @@ create_pipeline (CcrApp *app)
 		      "num-buffers", 100,
 		      NULL);
 
-	tee = gst_element_factory_make ("tee", NULL);
-	if (tee == NULL)
+	app->tee = gst_element_factory_make ("tee", NULL);
+	if (app->tee == NULL)
 	{
 		g_error ("Failed to create tee GStreamer element.");
 	}
 
 	xvimagesink_bin = create_xvimagesink_bin ();
-	save_to_file_bin = create_save_to_file_bin ();
 
-	gst_bin_add_many (GST_BIN (app->pipeline), v4l2src, tee, xvimagesink_bin, save_to_file_bin, NULL);
+	gst_bin_add_many (GST_BIN (app->pipeline), v4l2src, app->tee, xvimagesink_bin, NULL);
 
-	if (!gst_element_link_many (v4l2src, tee, xvimagesink_bin, NULL))
+	if (!gst_element_link_many (v4l2src, app->tee, xvimagesink_bin, NULL))
 	{
 		g_error ("Failed to link GStreamer elements.");
 	}
 
-	gst_pad_link (gst_element_get_request_pad (tee, "src_%u"),
-		      gst_element_get_static_pad (save_to_file_bin, "sink"));
-
 	gst_element_set_state (app->pipeline, GST_STATE_PLAYING);
+
+	g_timeout_add_seconds (5, create_save_to_file_bin_cb, app);
 }
 
 #if 0
