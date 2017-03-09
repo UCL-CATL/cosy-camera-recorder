@@ -32,7 +32,10 @@ typedef struct _CcrApp CcrApp;
 struct _CcrApp
 {
 	GMainLoop *main_loop;
+
 	GstElement *pipeline;
+	GstElement *tee;
+	GstPad *tee_request_pad;
 
 	void *zeromq_context;
 	void *zeromq_replier;
@@ -228,16 +231,60 @@ create_save_to_file_bin (void)
 	return bin;
 }
 
+static GstPadProbeReturn
+tee_request_pad_block_probe_cb (GstPad          *pad,
+				GstPadProbeInfo *info,
+				gpointer         user_data)
+{
+	CcrApp *app = user_data;
+	GstElement *save_to_file_bin;
+	GstPad *sink_pad;
+	GstPadLinkReturn link_return;
+
+	save_to_file_bin = create_save_to_file_bin ();
+
+	gst_bin_add (GST_BIN (app->pipeline), save_to_file_bin);
+
+	sink_pad = gst_element_get_static_pad (save_to_file_bin, "sink");
+	link_return = gst_pad_link (app->tee_request_pad, sink_pad);
+	if (link_return != GST_PAD_LINK_OK)
+	{
+		g_warning ("Problem when linking tee_request_pad to save_to_file_bin sink.");
+	}
+	gst_object_unref (sink_pad);
+
+	gst_element_sync_state_with_parent (save_to_file_bin);
+
+	return GST_PAD_PROBE_REMOVE;
+}
+
+static gboolean
+create_save_to_file_bin_cb (gpointer user_data)
+{
+	CcrApp *app = user_data;
+
+	g_assert (app->tee_request_pad == NULL);
+	app->tee_request_pad = gst_element_get_request_pad (app->tee, "src_%u");
+
+	gst_pad_add_probe (app->tee_request_pad,
+			   GST_PAD_PROBE_TYPE_BLOCK_DOWNSTREAM,
+			   tee_request_pad_block_probe_cb,
+			   app,
+			   NULL);
+
+	return G_SOURCE_REMOVE;
+}
+
 static void
 create_pipeline (CcrApp *app)
 {
 	GstBus *bus;
 	GstElement *v4l2src;
-	GstElement *tee;
 	GstElement *xvimagesink_bin;
-	GstElement *save_to_file_bin;
 
 	g_assert (app->pipeline == NULL);
+	g_assert (app->tee == NULL);
+
 	app->pipeline = gst_pipeline_new ("video-capture-pipeline");
 
 	bus = gst_pipeline_get_bus (GST_PIPELINE (app->pipeline));
@@ -265,26 +312,24 @@ create_pipeline (CcrApp *app)
 		      "num-buffers", 100,
 		      NULL);
 
-	tee = gst_element_factory_make ("tee", NULL);
-	if (tee == NULL)
+	app->tee = gst_element_factory_make ("tee", NULL);
+	if (app->tee == NULL)
 	{
 		g_error ("Failed to create tee GStreamer element.");
 	}
 
 	xvimagesink_bin = create_xvimagesink_bin ();
-	save_to_file_bin = create_save_to_file_bin ();
 
-	gst_bin_add_many (GST_BIN (app->pipeline), v4l2src, tee, xvimagesink_bin, save_to_file_bin, NULL);
+	gst_bin_add_many (GST_BIN (app->pipeline), v4l2src, app->tee, xvimagesink_bin, NULL);
 
-	if (!gst_element_link_many (v4l2src, tee, xvimagesink_bin, NULL))
+	if (!gst_element_link_many (v4l2src, app->tee, xvimagesink_bin, NULL))
 	{
 		g_error ("Failed to link GStreamer elements.");
 	}
 
-	gst_pad_link (gst_element_get_request_pad (tee, "src_%u"),
-		      gst_element_get_static_pad (save_to_file_bin, "sink"));
-
 	gst_element_set_state (app->pipeline, GST_STATE_PLAYING);
+
+	g_timeout_add_seconds (5, create_save_to_file_bin_cb, app);
 }
 
 #if 0
@@ -463,6 +508,16 @@ app_init (CcrApp *app)
 static void
 app_finalize (CcrApp *app)
 {
+	if (app->tee_request_pad != NULL)
+	{
+		if (app->tee != NULL)
+		{
+			gst_element_release_request_pad (app->tee, app->tee_request_pad);
+		}
+
+		gst_object_unref (app->tee_request_pad);
+	}
+
 	if (app->pipeline != NULL)
 	{
 		gst_element_set_state (app->pipeline, GST_STATE_NULL);
