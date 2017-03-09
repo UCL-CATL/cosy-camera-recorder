@@ -91,17 +91,6 @@ get_video_filename (void)
 }
 
 static void
-destroy_pipeline (CcrApp *app)
-{
-	if (app->pipeline != NULL)
-	{
-		gst_element_set_state (app->pipeline, GST_STATE_NULL);
-		gst_object_unref (app->pipeline);
-		app->pipeline = NULL;
-	}
-}
-
-static void
 bus_message_error_cb (GstBus     *bus,
 		      GstMessage *message,
 		      CcrApp     *app)
@@ -474,7 +463,12 @@ app_init (CcrApp *app)
 static void
 app_finalize (CcrApp *app)
 {
-	destroy_pipeline (app);
+	if (app->pipeline != NULL)
+	{
+		gst_element_set_state (app->pipeline, GST_STATE_NULL);
+		gst_object_unref (app->pipeline);
+		app->pipeline = NULL;
+	}
 
 	zmq_close (app->zeromq_replier);
 	app->zeromq_replier = NULL;
