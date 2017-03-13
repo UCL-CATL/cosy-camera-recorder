@@ -148,7 +148,9 @@ set_video_profile (GstElement *camerabin)
 	GstEncodingVideoProfile *video_prof;
 	GstCaps *caps;
 
-	caps = gst_caps_from_string ("video/quicktime");
+	caps = gst_caps_new_simple ("video/quicktime",
+				    "variant", G_TYPE_STRING, "iso",
+				    NULL);
 	container_prof = gst_encoding_container_profile_new ("MP4 video",
 							     "Standard MP4/MPEG-4",
 							     caps,
