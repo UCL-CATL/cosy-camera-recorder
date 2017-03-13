@@ -157,7 +157,9 @@ set_video_profile (GstElement *camerabin)
 							     NULL);
 	gst_caps_unref (caps);
 
-	caps = gst_caps_from_string ("video/mpeg");
+	caps = gst_caps_new_simple ("video/mpeg",
+				    "mpegversion", G_TYPE_INT, 4,
+				    NULL);
 	video_prof = gst_encoding_video_profile_new (caps, NULL, NULL, 0);
 	gst_caps_unref (caps);
 
