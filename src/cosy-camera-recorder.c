@@ -119,7 +119,7 @@ bus_message_cb (GstBus     *bus,
 		gchar *debug;
 
 		gst_message_parse_error (msg, &error, &debug);
-		g_print ("Error: %s\n", error->message);
+		g_print ("Error: %s\n%s\n", error->message, debug);
 		g_error_free (error);
 		g_free (debug);
 
