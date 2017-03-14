@@ -164,7 +164,7 @@ read_request (CcrApp *app)
 		return;
 	}
 
-	g_print ("Request from cosy-pupil-client: %s\n", request);
+	g_print ("ZeroMQ request received: %s\n", request);
 
 	if (g_str_equal (request, "start"))
 	{
@@ -180,7 +180,7 @@ read_request (CcrApp *app)
 		reply = g_strdup ("unknown request");
 	}
 
-	g_print ("Send reply to cosy-pupil-client...\n");
+	g_print ("Send ZeroMQ reply...\n");
 	zmq_send (app->zeromq_replier,
 		  reply,
 		  strlen (reply),
@@ -224,7 +224,7 @@ app_init (CcrApp *app)
 	ok = zmq_bind (app->zeromq_replier, REPLIER_ENDPOINT);
 	if (ok != 0)
 	{
-		g_error ("Error when creating zmq socket at \"" REPLIER_ENDPOINT "\": %s.\n"
+		g_error ("Error when creating ZeroMQ socket at \"" REPLIER_ENDPOINT "\": %s.\n"
 			 "Is another cosy-camera-recorder process running?",
 			 g_strerror (errno));
 	}
@@ -237,7 +237,7 @@ app_init (CcrApp *app)
 			     sizeof (int));
 	if (ok != 0)
 	{
-		g_error ("Error when setting zmq socket option for the replier: %s",
+		g_error ("Error when setting ZeroMQ socket option for the replier: %s",
 			 g_strerror (errno));
 	}
 
