@@ -246,8 +246,8 @@ app_init (CcrApp *app)
 	app->timer = NULL;
 	app->recording = FALSE;
 
-	/* ZeroMQ polling every 5ms */
-	g_timeout_add (5, timeout_cb, app);
+	/* ZeroMQ polling every ms */
+	g_timeout_add (1, timeout_cb, app);
 }
 
 static void
