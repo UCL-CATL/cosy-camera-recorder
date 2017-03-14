@@ -20,4 +20,4 @@ docker run -it --rm \
 	--volume $XAUTH:$XAUTH --env XAUTHORITY=$XAUTH \
 	--volume $recordings_dir:/root/cosy-camera-recorder/src/cosy-camera-recorder-videos \
 	--volume /etc/localtime:/etc/localtime:ro \
-	ucl-cosy/cosy-camera-recorder:0.3.1
+	ucl-cosy/cosy-camera-recorder:0.4

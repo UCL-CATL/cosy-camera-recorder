@@ -1,3 +1,53 @@
+News in 0.4, 2017-03-14
+-----------------------
+* CheeseCamera: change GstEncodingProfile to MPEG-4 in MP4 container.
+
+  It took some time to figure out how to do it properly. Since it didn't work
+  after my first attempt, and since I didn't know what was going wrong, I've
+  investigated two other solutions, which permitted me to better learn
+  GStreamer:
+
+	* Creating a dynamic pipeline with only basic GStreamer elements:
+	  v4l2src (the camera), then a tee with one branch to display the
+	  image, and the other branch added on demand to record the video.
+	  Since the pipeline is in the Playing state (the data is flowing
+	  through the elements), before adding the recording branch, probes
+	  must be added to block the data on that side of the tee element. Then
+	  once the new branch is linked, the probe must be removed to let the
+	  data flow on that branch. To stop the recording, a blocking probe
+	  must also be added, then the data needs to be flushed to not have a
+	  corrupted video file, and then the recording branch can be removed.
+	  One problem encountered is that caps negotiation (the formats of the
+	  data) is not performed correctly when the recording branch is
+	  missing: when we try to add the recording branch, the format chosen
+	  previously is not the good one. I think that one way to solve that is
+	  to add a capsfilter element, taking the intersection of the three
+	  branches around the tee element.
+
+	  Unfinished, more complicated than I thought.
+
+	* Using the camerabin GStreamer element. CheeseCamera also uses
+	  camerabin. camerabin is an intermediate solution between basic
+	  GStreamer elements and the libcheese. camerabin is a bit lower-level
+	  than libcheese, but is much easier to use than creating our own
+	  dynamic pipeline.
+
+	  To configure the video encoding format, it's the same function as in
+	  CheeseCamera, i.e. with a GstEncodingProfile, since in CheeseCamera
+	  the GstEncodingProfile is also applied to the camerabin. With a
+	  simpler usage of camerabin, it was easier to figure out the problem
+	  with the GstEncodingProfile (and also after more GStreamer
+	  documentation reading).
+
+	  Unfinished/buggy: I have this error: Device '/dev/video0' is busy.
+	  With the libcheese the same GstEncodingProfile works fine, I didn't
+	  try to understand why. (camerabin works fine with its default video
+	  format, the error happens only when trying to change the video
+	  format). Multimedia is hard :-)
+
+* Polish the program: better error messages, etc.
+* Update Docker container.
+
 News in 0.3, 2017-02-14
 -----------------------
 * Copy the code of libcheese, to be able to modify it for our needs. Remove the
