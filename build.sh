@@ -1,3 +1,4 @@
 #!/usr/bin/env bash
 
-docker build --rm --tag ucl-cosy/cosy-camera-recorder .
+git clean -Xdf
+docker build --rm --tag ucl-cosy/cosy-camera-recorder:0.3.1 .
