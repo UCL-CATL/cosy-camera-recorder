@@ -187,7 +187,7 @@ read_request (CcrApp *app)
 		  reply,
 		  strlen (reply),
 		  0);
-	g_print ("done.\n");
+	g_print ("done.\n\n");
 
 	g_free (request);
 	g_free (reply);
