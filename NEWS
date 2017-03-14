@@ -1,0 +1,32 @@
+News in 0.3, 2017-02-14
+-----------------------
+* Copy the code of libcheese, to be able to modify it for our needs. Remove the
+  classes that we don't need, and remove some features from CheeseCamera, to
+  have less code (and thus easier to understand). Note that at this point the
+  modifications of libcheese are just code removal, the videos are still
+  encoded in the wrong format.
+
+News in 0.2, 2017-02-13
+-----------------------
+* Use the libcheese. The image of the camera is displayed in a GTK+ window, and
+  starting/stopping video recordings with ZeroMQ requests work fine, except
+  that the video is not encoded in the good format for Pupil Capture.
+
+  Cheese is the GNOME webcam application, to take photos and videos, and apply
+  effects. In cosy-camera-recorder we don't need to take photos nor apply
+  effects, but the libcheese provides a convenient API, and it can be
+  integrated into a GTK+ application. Unfortunately the libcheese was not
+  developed as a "generic" shared library, a lot of the code is specific to the
+  Cheese application (the use of GSettings inside the library, the hard-coded
+  video format, things like that).
+
+  https://wiki.gnome.org/Apps/Cheese
+
+* Use the Autotools for the build system instead of basic Makefiles.
+
+News in 0.1, 2017-01-17
+-----------------------
+* First version.
+* Learn GStreamer basics.
+* Be able to start/stop video recordings of a camera with ZeroMQ requests, but
+  the image of the camera is not displayed on the screen.
