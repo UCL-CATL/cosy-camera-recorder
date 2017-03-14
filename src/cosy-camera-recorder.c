@@ -118,8 +118,10 @@ start_recording (CcrApp *app)
 		g_timer_start (app->timer);
 	}
 
-	camera = CHEESE_CAMERA (cheese_widget_get_camera (app->cheese_widget));
 	video_filename = get_video_filename ();
+	g_print ("The video will be saved to: %s\n", video_filename);
+
+	camera = CHEESE_CAMERA (cheese_widget_get_camera (app->cheese_widget));
 	cheese_camera_start_video_recording (camera, video_filename);
 	g_free (video_filename);
 
