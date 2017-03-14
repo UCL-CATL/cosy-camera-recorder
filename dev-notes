@@ -36,4 +36,4 @@ With the Cheese webcam application, on Fedora 24, we see the camera image (with
 the usbtv video grabber). Cheese uses the GStreamer library. GStreamer can be
 used for a lot of purposes, it is very flexible. So if the code works with
 GStreamer, chances are that it will work for a lot of different video capture
-devices (if high-level APIs are used), not just the one we want to use.
+devices, not just the one we want to use.
