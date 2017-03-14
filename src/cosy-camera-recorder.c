@@ -226,7 +226,7 @@ app_init (CcrApp *app)
 	{
 		g_error ("Error when creating zmq socket at \"" REPLIER_ENDPOINT "\": %s.\n"
 			 "Is another cosy-camera-recorder process running?",
-			 strerror (errno));
+			 g_strerror (errno));
 	}
 
 	/* Non-blocking */
@@ -238,7 +238,7 @@ app_init (CcrApp *app)
 	if (ok != 0)
 	{
 		g_error ("Error when setting zmq socket option for the replier: %s",
-			 strerror (errno));
+			 g_strerror (errno));
 	}
 
 	app->timer = NULL;
