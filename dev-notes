@@ -37,3 +37,20 @@ the usbtv video grabber). Cheese uses the GStreamer library. GStreamer can be
 used for a lot of purposes, it is very flexible. So if the code works with
 GStreamer, chances are that it will work for a lot of different video capture
 devices, not just the one we want to use.
+
+Using Pupil as a library
+------------------------
+
+It would be nice to have a high-level library or command line program to get
+pupil information (at least diameter) from a video. The API would be really
+simple: the input is a video filename, the output is a list of pupil
+information for each frame. With possibly some options that can be tuned if
+necessary.
+
+But from what I've seen in the source code of Pupil version 0.9.1, the code is
+not easily usable as a library: almost no documentation, and the code is
+written in Python without explicit parameter types, so it's hard to know how to
+use the code, what the functions expect as arguments. Also, image
+processing/computer vision is clearly not my domain.
+
+So, the Pupil GUI needs to be used, with a manual process…
