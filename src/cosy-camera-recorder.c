@@ -243,8 +243,17 @@ init_zeromq (CcrApp *app)
 }
 
 static void
+video_saved_cb (CheeseCamera *camera,
+		gpointer      user_data)
+{
+	g_print ("Video saved.\n\n");
+}
+
+static void
 init_window (CcrApp *app)
 {
+	CheeseCamera *camera;
+
 	g_assert (app->window == NULL);
 	g_assert (app->cheese_widget == NULL);
 
@@ -258,6 +267,12 @@ init_window (CcrApp *app)
 			   GTK_WIDGET (app->cheese_widget));
 
 	gtk_widget_show_all (GTK_WIDGET (app->window));
+
+	camera = CHEESE_CAMERA (cheese_widget_get_camera (app->cheese_widget));
+	g_signal_connect (camera,
+			  "video-saved",
+			  G_CALLBACK (video_saved_cb),
+			  NULL);
 }
 
 static void
