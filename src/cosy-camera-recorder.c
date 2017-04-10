@@ -278,6 +278,7 @@ init_window (CcrApp *app)
 static void
 app_init (CcrApp *app)
 {
+	g_print ("Initializing...\n\n");
 	init_window (app);
 	init_zeromq (app);
 }
