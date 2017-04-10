@@ -204,21 +204,13 @@ timeout_cb (gpointer user_data)
 }
 
 static void
-app_init (CcrApp *app)
+init_zeromq (CcrApp *app)
 {
 	int timeout_ms;
 	int ok;
 
-	app->window = GTK_WINDOW (gtk_window_new (GTK_WINDOW_TOPLEVEL));
-	gtk_window_set_default_size (app->window, 500, 375);
-	g_signal_connect (app->window, "destroy", gtk_main_quit, NULL);
-
-	app->cheese_widget = CHEESE_WIDGET (cheese_widget_new ());
-
-	gtk_container_add (GTK_CONTAINER (app->window),
-			   GTK_WIDGET (app->cheese_widget));
-
-	gtk_widget_show_all (GTK_WIDGET (app->window));
+	g_assert (app->zeromq_context == NULL);
+	g_assert (app->zeromq_replier == NULL);
 
 	app->zeromq_context = zmq_ctx_new ();
 
@@ -248,6 +240,31 @@ app_init (CcrApp *app)
 
 	/* ZeroMQ polling every ms */
 	g_timeout_add (1, timeout_cb, app);
+}
+
+static void
+init_window (CcrApp *app)
+{
+	g_assert (app->window == NULL);
+	g_assert (app->cheese_widget == NULL);
+
+	app->window = GTK_WINDOW (gtk_window_new (GTK_WINDOW_TOPLEVEL));
+	gtk_window_set_default_size (app->window, 500, 375);
+	g_signal_connect (app->window, "destroy", gtk_main_quit, NULL);
+
+	app->cheese_widget = CHEESE_WIDGET (cheese_widget_new ());
+
+	gtk_container_add (GTK_CONTAINER (app->window),
+			   GTK_WIDGET (app->cheese_widget));
+
+	gtk_widget_show_all (GTK_WIDGET (app->window));
+}
+
+static void
+app_init (CcrApp *app)
+{
+	init_window (app);
+	init_zeromq (app);
 }
 
 static void
