@@ -1,0 +1,12 @@
+TODO
+
+- Make the code more robust: handle several start requests without stop
+  in-between, and vice-versa.
+
+- When recording, show confirmation dialog when trying to close the window.
+
+- Display an icon or label to know when it is recording.
+
+- Be able to use the upstream libcheese: add API to change the
+  GstEncodingProfile. But first see if there is already a way to do it with the
+  current API.
