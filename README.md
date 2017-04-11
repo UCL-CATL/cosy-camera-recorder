@@ -5,6 +5,8 @@ Recording a video coming from a camera or webcam, based on the
 [GStreamer](https://gstreamer.freedesktop.org/) library. The recording is
 started and stopped with [ZeroMQ](http://zeromq.org/) requests.
 
+This program has been developed on GNU/Linux.
+
 cosy-camera-recorder is licensed under the GNU General Public License version 3
 or later. See the file `COPYING` for more information.
 
