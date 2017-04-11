@@ -53,4 +53,5 @@ written in Python without explicit parameter types, so it's hard to know how to
 use the code, what the functions expect as arguments. Also, image
 processing/computer vision is clearly not my domain.
 
-So, the Pupil GUI needs to be used, with a manual process…
+So, the Pupil GUI needs to be used to open the recorded video, with a manual
+process…
