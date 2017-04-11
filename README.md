@@ -30,3 +30,7 @@ video grabbers, and the default webcams that come with the Pupil headset.
 Ideally a new video capture backend based on GStreamer should be developed for
 Pupil Capture. The program in this repository is a much simpler solution, for
 the cases where the eye tracking data don't need to be available in real-time.
+
+**Update:** finally the UVC video grabber works well with Pupil Capture
+(version 0.9.3 at least). So we will use Pupil Capture instead of this program.
+At least writing this program has permitted me to learn GStreamer.
