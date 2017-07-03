@@ -10,3 +10,6 @@ TODO
 - Be able to use the upstream libcheese: add API to change the
   GstEncodingProfile. But first see if there is already a way to do it with the
   current API.
+
+- Misc note: instead of the v4l2src GStreamer element, there is also
+  autovideosrc.
