@@ -26,6 +26,10 @@ News in 0.4, 2017-03-14
 
 	  Unfinished, more complicated than I thought.
 
+	  Update: gstproxy (proxysink + proxysrc) can be useful to simplify
+	  this solution with the dynamic pipeline. See:
+	  http://blog.nirbheek.in/2018/02/decoupling-gstreamer-pipelines.html
+
 	* Using the camerabin GStreamer element. CheeseCamera also uses
 	  camerabin. camerabin is an intermediate solution between basic
 	  GStreamer elements and the libcheese. camerabin is a bit lower-level
