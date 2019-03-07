@@ -10,6 +10,11 @@ This program has been developed on GNU/Linux.
 cosy-camera-recorder is licensed under the GNU General Public License version 3
 or later. See the file `COPYING` for more information.
 
+The software in this repository is developed by the
+[Institute of NeuroScience](https://uclouvain.be/en/research-institutes/ions),
+[UCLouvain](https://uclouvain.be/en/),
+Belgium.
+
 Use-case
 --------
 
